@@ -26,5 +26,16 @@
         "path": "tadashi"
       }
     }
+    ,
+    {
+      "id": "make-vibe",
+      "name": "make-vibe",
+      "description": "Expose Makefile targets as MCP tools for building and running code on local or remote HPC systems via SLURM",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "make-vibe"
+      }
+    }
   ]
 }
