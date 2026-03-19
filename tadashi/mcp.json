@@ -1,5 +1,0 @@
-{
-  "name": "tadashi-optimizer",
-  "command": "docker",
-  "args": ["run", "-i", "--rm", "wddawson/tadashi-mcp:latest"]
-}
