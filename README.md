@@ -21,3 +21,4 @@ Then install individual skills via the Discover tab or:
 | Skill | Description |
 |-------|-------------|
 | [raptor](./raptor/) | Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR |
+| [tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |

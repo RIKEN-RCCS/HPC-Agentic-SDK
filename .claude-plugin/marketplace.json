@@ -15,5 +15,16 @@
         "path": "raptor"
       }
     }
+    ,
+    {
+      "id": "tadashi",
+      "name": "Tadashi",
+      "description": "Check whether loop transformations (interchange, tiling, fusion) are mathematically safe using polyhedral analysis",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "tadashi"
+      }
+    }
   ]
 }
