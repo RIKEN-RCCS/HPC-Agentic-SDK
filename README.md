@@ -24,3 +24,4 @@ Then install individual skills via the Discover tab or:
 | [RAPTOR](./raptor/) | Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR |
 | [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
 | [make-vibe](./make-vibe/) | Expose Makefile targets as MCP tools for building and running code on local or remote HPC systems |
+| [r-ccs-cloud](./r-ccs-cloud/) | Reference for R-CCS cloud HPC systems: resources, modules, SLURM scripts, and login details |
