@@ -7,7 +7,7 @@ A Claude Code skill marketplace for scientific computing tools.
 In Claude Code:
 
 ```
-/plugin marketplace add <owner>/marketplace
+/plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
 ```
 
 Then install individual skills via the Discover tab or:
