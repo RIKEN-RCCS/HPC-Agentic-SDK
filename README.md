@@ -13,7 +13,7 @@ In Claude Code:
 Then install individual skills via the Discover tab or:
 
 ```
-/plugin install raptor
+/plugin install RAPTOR
 ```
 
 ## Skills
