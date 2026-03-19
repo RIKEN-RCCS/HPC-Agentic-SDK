@@ -1,12 +1,13 @@
 {
-  "name": "Scientific Computing Skills",
+  "name": "hpc-agentic-sdk",
   "description": "Claude Code skills for scientific computing tools",
+  "owner": "RIKEN-RCCS",
   "plugins": [
     {
       "id": "raptor",
       "name": "RAPTOR",
       "description": "Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR",
-      "path": "raptor"
+      "source": "raptor"
     }
   ]
 }
