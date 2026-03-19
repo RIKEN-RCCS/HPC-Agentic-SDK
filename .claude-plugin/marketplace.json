@@ -1,13 +1,19 @@
 {
   "name": "hpc-agentic-sdk",
   "description": "Claude Code skills for scientific computing tools",
-  "owner": "RIKEN-RCCS",
+  "owner": {
+    "name": "RIKEN-RCCS"
+  },
   "plugins": [
     {
       "id": "raptor",
       "name": "RAPTOR",
       "description": "Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR",
-      "source": "raptor"
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "raptor"
+      }
     }
   ]
 }
