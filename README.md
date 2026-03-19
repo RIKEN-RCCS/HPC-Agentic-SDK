@@ -1,6 +1,7 @@
-# Scientific Computing Skills
+# Agentic SDK for High Performance Computing
 
-A Claude Code skill marketplace for scientific computing tools.
+A market place of claude code skills and MCP servers useful for HPC development
+using agentic tools.
 
 ## Install
 
@@ -20,5 +21,5 @@ Then install individual skills via the Discover tab or:
 
 | Skill | Description |
 |-------|-------------|
-| [raptor](./raptor/) | Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR |
-| [tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
+| [RAPTOR](./raptor/) | Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR |
+| [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
