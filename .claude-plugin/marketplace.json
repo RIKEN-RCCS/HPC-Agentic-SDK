@@ -48,5 +48,16 @@
         "path": "r-ccs-cloud"
       }
     }
+    ,
+    {
+      "id": "openacc",
+      "name": "OpenACC",
+      "description": "Automatically insert OpenACC directives into Fortran code using a verified template library for reliable GPU parallelization",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "openacc"
+      }
+    }
   ]
 }
