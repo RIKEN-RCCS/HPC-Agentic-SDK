@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "make-vibe": {
+    "make-vibe-mcp": {
       "command": "uvx",
       "args": ["make-vibe@latest"]
     }
