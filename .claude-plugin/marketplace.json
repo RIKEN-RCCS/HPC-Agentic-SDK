@@ -59,5 +59,16 @@
         "path": "openacc"
       }
     }
+    ,
+    {
+      "id": "gpu-porting",
+      "name": "GPU Porting",
+      "description": "Systematic workflow for porting HPC code to GPU with OpenACC, enforcing make-vibe MCP for all iterations",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "gpu-porting"
+      }
+    }
   ]
 }

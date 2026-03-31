@@ -9,13 +9,10 @@ In Claude Code:
 
 ```
 /plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
+/plugin install RAPTOR TADASHI make-vibe r-ccs-cloud OpenACC
 ```
 
-Then install individual skills via the Discover tab or:
-
-```
-/plugin install RAPTOR
-```
+This installs all plugins needed for HPC code tuning workflows.
 
 ## Skills
 
