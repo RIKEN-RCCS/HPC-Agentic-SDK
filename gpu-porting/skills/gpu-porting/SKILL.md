@@ -47,37 +47,26 @@ If you think "let me quickly test this locally first," you've already violated t
 
 ---
 
-### Phase 1: Setup
+### Phase 1: Setup with make-vibe
 
-1. **Ask clarifying questions:**
-   - Current Makefile? What compiler? Target GPU system?
+**I'm invoking the make-vibe skill to configure your HPC build system.**
 
-2. **Invoke r-ccs-cloud skill**
-   - Determine GPU partition, modules, SLURM parameters
-   - Document in make-vibe.config
+The make-vibe skill will handle everything:
+- Your code directory, Makefile, GPU system configuration
+- Creating `config.json` and job template
+- Setting up Makefile targets with `# @env:` annotations
+- Discovering available make-vibe tools (e.g., `/make_build`, `/make_run`)
 
-3. **Create make-vibe.config** in code directory:
-   ```bash
-   COMPILER=pgcc              # Compiler
-   GPU_ARCH=sm_70             # GPU architecture
-   PARTITION=gpu              # SLURM partition
-   GPUS_PER_NODE=1
-   TIME_LIMIT=10:00
-   ```
+**Follow the make-vibe skill through to completion.** When it's done, you'll have working MCP tools.
 
-4. **Create/update Makefile** with targets:
-   - `make build` — compile with GPU flags
-   - `make run` — execute on GPU
-   - `make clean` — cleanup
+Once make-vibe is set up:
+1. Return to GPU porting
+2. Confirm: baseline performance captured from `/make_run` (or equivalent make-vibe tool)
+3. Proceed to Phase 2
 
-5. **Verify make-vibe works:**
-   - Run `/make-vibe build` → must succeed
-   - Run `/make-vibe run` → capture baseline performance
-   - If fails: debug setup until working
+**Hard gate:** Cannot proceed to Phase 2 until make-vibe tools are working and baseline performance is documented.
 
-**Hard gate:** Cannot proceed until baseline runs through make-vibe successfully.
-
-**Artifact:** `GPU_PORTING_SETUP.md` with baseline performance.
+**What you'll have:** `config.json`, job template, Makefile with `# @env:` annotations, and active make-vibe tools.
 
 ---
 
@@ -109,9 +98,14 @@ If you think "let me quickly test this locally first," you've already violated t
 
 ### Phase 3: GPU Porting (Iterative)
 
-For each target function:
+For each target function in your GPU_PORTING_PLAN:
 
-1. **Create Makefile target** with name like `gpu-test-<function>`
+1. **Invoke OpenACC skill**
+   - Add `!$acc parallel loop` or `!$acc kernels` to the function
+   - Keep changes minimal (directives only, no algorithm changes)
+   - Document GPU constraints in comments
+
+2. **Create Makefile target** to test this function:
    ```makefile
    .PHONY: gpu-test-kernel1
    gpu-test-kernel1:
@@ -119,30 +113,29 @@ For each target function:
        ./build/test < input.in > output.out
    ```
 
-2. **Invoke OpenACC skill**
-   - Add `!$acc parallel loop` or `!$acc kernels`
-   - Keep changes minimal (directives only, no algorithm changes)
-   - Document GPU constraints in comments
+3. **Commit changes** to code and Makefile
 
-3. **Commit code changes**
-
-4. **Tell user:** "I've created Makefile target `gpu-test-kernel1`. Please reload the make-vibe plugin."
+4. **Tell user:** "I've added Makefile target `gpu-test-kernel1`. Please reload the make-vibe plugin so it discovers the new target."
 
 5. **Wait for user reload confirmation**
 
-6. **Run:** `/make-vibe gpu-test-kernel1`
+6. **Execute through make-vibe:** Call `/make_gpu_test_kernel1` (the MCP tool make-vibe now exposes)
+   - This syncs your code, submits the jobscript, and returns results
    - Capture compiler output, test results, performance delta
-   - All results from make-vibe output only
+   - All proof from make-vibe tool output
 
-7. **Evaluate:**
+7. **Evaluate results:**
    - Did compilation succeed?
-   - Did test produce correct results?
+   - Did test produce correct results (compare to baseline)?
    - Is speedup acceptable?
-   - If YES: merge to main. If NO: debug and retry.
+   - If YES: merge this change to main. If NO: revert and retry.
 
 **Repeat for each GPU candidate function.**
 
-**Hard gate:** No local compilation, no local testing, no local benchmarking. Ever.
+**Hard gate:**
+- ❌ Never run `make gpu-test-kernel1` locally
+- ❌ Never compile locally
+- ❌ Only use the `/make_gpu_test_kernel1` tool that make-vibe exposes
 
 ---
 
@@ -161,7 +154,12 @@ For each target function:
        make run
    ```
 
-3. **Run:** `/make-vibe gpu-benchmark`
+3. **Commit the Makefile changes**
+
+4. **Tell user:** "I've added the `gpu-benchmark` target. Please reload make-vibe."
+
+5. **Wait for reload confirmation, then execute:** `/make_gpu_benchmark`
+   - make-vibe syncs, compiles, and benchmarks all ported functions together
    - Capture final system performance
    - Compare vs. baseline from Phase 1
 
