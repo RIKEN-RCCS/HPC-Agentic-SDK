@@ -36,24 +36,27 @@ This prevents wasted effort on wrong tools or misconfigured environments.
 
 ## The Workflow
 
-### Phase 1: Understand the Project
+### Phase 1: Explore and Understand the Project
 
-Ask the user (one question per exchange):
+1. **Explore the project directory:**
+   - List source files to identify code language (C, C++, Fortran)
+   - Check for Makefile, build scripts, configuration files
+   - Read key source files to understand what the code does
+   - Identify any existing parallelism (MPI, OpenMP, etc.)
 
-1. **What are your code optimization/porting goals?**
-   - Examples: "Port to GPU", "Optimize performance", "Add MPI parallelism", "Reduce FP precision overhead", "Improve CI/CD"
+2. **Ask ONE clarifying question:**
+   - "I see you have [language] code for [what it does]. What's your optimization goal? (e.g., Port to GPU / Optimize performance / Add MPI / Reduce FP overhead)"
 
-2. **What's the code language and current state?**
-   - C, C++, Fortran? Does it compile and run? Any existing parallelism (MPI, OpenMP)?
+3. **Ask ONE system question:**
+   - "Where will you run experiments? (localhost on your machine / R-CCS cloud)"
 
-3. **Where will you run experiments?**
-   - R-CCS cloud (RIKEN HPC system)? Or localhost (your machine)?
+4. **Ask system-specific constraints (if needed):**
+   - If R-CCS cloud: "Any specific constraints? (GPU type, partition, time limit, etc.)"
+   - If localhost: "Any environment setup needed? (specific compiler, dependencies, etc.)"
 
-4. **Any specific constraints?**
-   - R-CCS cloud: partition, node type, time limits, GPU type?
-   - Localhost: any environment setup needed?
+**Artifact created:** Notes on code, goals, and execution environment.
 
-**Artifact created:** Notes on project scope, constraints, and environment.
+**Hard gate:** Do NOT ask generic questions about code language, state, or HPC systems. Look at the directory first. Only ask what you can't determine by reading the project.
 
 ---
 
@@ -230,14 +233,16 @@ Once CLAUDE.md is approved:
 
 Stop immediately if:
 
+- ❌ Asking "What language is your code?" without checking the directory first
+- ❌ Asking "What's your HPC system?" with options like "Local GPU", "Cloud GPU", "Academic cluster" (we only support localhost or R-CCS cloud)
 - ❌ "Let me skip installing skill X, it's optional anyway"
 - ❌ "I'll test the skill later, after I start the work"
 - ❌ "I'll write CLAUDE.md once I know what I'm doing"
-- ❌ "I don't need to reload make-vibe for every target change"
+- ❌ "I don't need to reconnect to make-vibe for every target change"
 - ❌ "Let me just run `make` locally to check if it compiles"
 - ❌ "This skill doesn't apply to my project, so I'll skip it"
 
-If any of these appear, you've skipped the bootstrap. Return to Phase 1.
+If any of these appear, you've skipped the bootstrap. Return to Phase 1: explore the directory first, then ask focused questions.
 
 ---
 
