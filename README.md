@@ -9,7 +9,7 @@ In Claude Code:
 
 ```
 /plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
-/plugin install RAPTOR TADASHI make-vibe r-ccs-cloud OpenACC
+/plugin install RAPTOR 
 ```
 
 This installs all plugins needed for HPC code tuning workflows.
