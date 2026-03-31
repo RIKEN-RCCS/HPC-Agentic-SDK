@@ -6,6 +6,22 @@ targets as MCP tools that you call instead of running `make` directly. Each
 tool call syncs the code to the remote machine, executes the target, and returns
 the output.
 
+## Getting Started
+
+If you only see a `get_setup_help` tool available, it means make-vibe config files
+are missing or invalid. **This is normal on first use.** Your workflow is:
+
+1. Call `get_setup_help` to see what files are needed
+2. **Work with the user to create the required files:**
+   - `config.json` — connection and job settings
+   - `config.sh` — job script template
+   - Ensure the Makefile has proper `# @env:` annotations
+3. Once files are created, **ask the user to reload the Claude Code plugin**
+   - In Claude Code, use the reload icon or the command palette to reload plugins/MCP servers
+4. After reload, all the real make targets will be available as tools
+
+The reload step is critical — make-vibe only reads the config files at startup.
+
 ## How It Works
 
 make-vibe reads two config files from the project directory and a Makefile:
@@ -71,6 +87,23 @@ build:
 run:
     ./app
 ```
+
+## Launching the Server
+
+The `.mcp.json` in the project directory starts the server:
+
+```json
+{
+  "mcpServers": {
+    "myproject": {
+      "command": "make-vibe"
+    }
+  }
+}
+```
+
+No flags are needed — `config.json` and `config.sh` are the defaults, and the
+project directory defaults to the current directory.
 
 ## Your Workflow
 
