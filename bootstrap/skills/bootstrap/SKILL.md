@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: Use when starting work on a new HPC code project to set up the right skills and create a project CLAUDE.md
+description: Use before any HPC code optimization, porting, or tuning work begins. Set up the right skills, verify they work, and create a project CLAUDE.md that documents goals and mandatory workflows.
 user-invocable: true
 ---
 
@@ -43,14 +43,15 @@ Ask the user (one question per exchange):
 1. **What are your code optimization/porting goals?**
    - Examples: "Port to GPU", "Optimize performance", "Add MPI parallelism", "Reduce FP precision overhead", "Improve CI/CD"
 
-2. **What code language and framework?**
-   - C, C++, Fortran? MPI, OpenMP, other parallelism? Current state (working, broken, partial)?
+2. **What's the code language and current state?**
+   - C, C++, Fortran? Does it compile and run? Any existing parallelism (MPI, OpenMP)?
 
-3. **What's your HPC system?**
-   - RIKEN R-CCS? Cloud GPU? Local cluster? Constraints (partition, nodes, time limits)?
+3. **Where will you run experiments?**
+   - R-CCS cloud (RIKEN HPC system)? Or localhost (your machine)?
 
-4. **Do you need to run code remotely or locally?**
-   - Locally? Remotely with SLURM? Both?
+4. **Any specific constraints?**
+   - R-CCS cloud: partition, node type, time limits, GPU type?
+   - Localhost: any environment setup needed?
 
 **Artifact created:** Notes on project scope, constraints, and environment.
 
@@ -62,14 +63,16 @@ Based on answers, recommend which HPC-Agentic-SDK skills are needed:
 
 | Goal | Skills Required | Optional |
 |------|-----------------|----------|
-| GPU porting | OpenACC, make-vibe | RAPTOR, Tadashi, r-ccs-cloud |
-| Performance tuning | RAPTOR | Tadashi, make-vibe |
-| Loop optimization | Tadashi | RAPTOR, make-vibe |
-| Precision reduction | RAPTOR | make-vibe |
-| Remote execution | make-vibe | r-ccs-cloud (if RIKEN) |
-| Any optimization | make-vibe (if remote execution) | — |
+| GPU porting | OpenACC | RAPTOR, Tadashi |
+| Performance tuning | RAPTOR | Tadashi |
+| Loop optimization | Tadashi | RAPTOR |
+| Precision reduction | RAPTOR | — |
+| R-CCS cloud execution | make-vibe | r-ccs-cloud |
 
-**Decision point:** If user will run experiments remotely or via HPC, make-vibe is **mandatory**. If local-only, make-vibe is optional.
+**Decision point:**
+- If running on **R-CCS cloud**: make-vibe is **mandatory** (+ r-ccs-cloud reference recommended)
+- If running on **localhost only**: make-vibe is optional
+- Optimization skills (RAPTOR, Tadashi, OpenACC) depend on the work, not the system
 
 Ask user to confirm the skill list:
 - "For your goals, I recommend installing: X, Y, Z. Does this match your plan?"
@@ -89,14 +92,25 @@ For each skill in the list:
 
 2. **Test immediately:**
    - For pure skills (RAPTOR, r-ccs-cloud): Ask user to view the skill and confirm it loaded
-   - For MCP skills (make-vibe, Tadashi, OpenACC):
-     - Ask user to reload Claude Code plugin
-     - Test a simple invocation to confirm tools appear
-     - Example for make-vibe: "Try calling a Makefile target to confirm make-vibe is working"
+   - For MCP servers (make-vibe, Tadashi, OpenACC):
+     - Ask user to restart Claude Code or reconnect to the MCP servers
+     - Test a simple invocation to confirm MCP tools appear
 
-3. **Hard gate:** If skill fails to load, debug before proceeding.
+3. **If make-vibe MCP server is required, set it up now (hard gate):**
+   - **Invoke r-ccs-cloud skill** to determine jobscript template, modules, SLURM parameters
+   - Create `config.json` (connection settings, host, submitter)
+   - Create `config.sh` jobscript template using r-ccs-cloud guidance
+   - Create/verify `Makefile` with targets and `# @env:` annotations
+   - **Reconnect to the make-vibe MCP server** (restart Claude Code or manually reconnect) so it discovers new Makefile targets
+   - Test by calling a simple make-vibe MCP tool (e.g., `/make_build`) to confirm it works
+   - If any step fails, debug and retry before proceeding
 
-**Artifact created:** Verification checklist — which skills are installed and tested.
+4. **Hard gate:**
+   - All required skills must load successfully
+   - If make-vibe is required, it must be fully configured and tested working
+   - Do NOT proceed to Phase 4 until all skills are verified
+
+**Artifact created:** Verification checklist (all skills installed, tested, and configured)
 
 ---
 
@@ -115,35 +129,38 @@ Generate a `CLAUDE.md` file in the project root:
 ## Environment
 
 - **Code language:** [e.g., Fortran]
-- **HPC system:** [e.g., RIKEN R-CCS]
-- **Execution mode:** [Local / Remote SLURM / Both]
+- **Execution system:** [Localhost / R-CCS cloud]
+- **Constraints:** [e.g., GPU type, time limits, partition]
 
-## Installed Skills
+## Installed Skills and MCP Servers
 
-The following HPC-Agentic-SDK skills are installed and verified:
+The following HPC-Agentic-SDK skills and MCP servers are installed and verified:
 
+**Skills:**
 - [x] RAPTOR — Profile and optimize floating-point precision
-- [x] make-vibe — Remote code execution via MCP
 - [x] r-ccs-cloud — RIKEN R-CCS reference guide
-- [ ] Tadashi — Validate loop parallelization
-- [ ] OpenACC — Insert GPU directives
+- [ ] Tadashi (skill) — Validate loop parallelization
+- [ ] OpenACC (skill) — Insert GPU directives
+
+**MCP Servers:**
+- [x] make-vibe — Remote code execution (exposes Makefile targets as MCP tools)
 
 ## Mandatory Workflows
 
-### If make-vibe is installed:
+### If make-vibe MCP server is installed:
 
-**The Iron Law:** All code execution runs through make-vibe MCP. You never run `make` commands locally, never compile locally, never run code locally.
+**The Iron Law:** All code execution runs through make-vibe MCP server tools. You never run `make` commands locally, never compile locally, never run code locally.
 
 **Workflow:**
 1. Edit source code locally
 2. Create or update a Makefile target (e.g., `make gpu-test-kernel1`)
 3. Commit changes
-4. Tell the user: "I've added/updated Makefile target X. Please reload make-vibe plugin."
-5. User reloads (forces make-vibe to re-parse Makefile)
+4. Tell the user: "I've added/updated Makefile target X. Please reconnect to the make-vibe MCP server (restart Claude Code or manually reconnect)."
+5. User reconnects (forces make-vibe to re-parse Makefile and discover new targets)
 6. Call `/make_<target>` MCP tool to execute on HPC
 7. Parse results from tool output only
 
-**Why:** Local environment ≠ HPC environment. Proof only exists on actual hardware via make-vibe.
+**Why:** Local environment ≠ HPC environment. Proof only exists on actual hardware via make-vibe MCP server.
 
 ### Other mandatory practices:
 
@@ -156,10 +173,10 @@ The following HPC-Agentic-SDK skills are installed and verified:
 ## How to Proceed
 
 1. Run the relevant HPC optimization skill (e.g., gpu-porting, profile-and-tune)
-2. It will invoke other skills as needed (RAPTOR, Tadashi, OpenACC, make-vibe)
-3. Follow the skill's workflow exactly
-4. Use installed tools as required
-5. All proof comes from make-vibe (if installed) or skill outputs
+2. It will invoke other skills as needed (RAPTOR, Tadashi, OpenACC)
+3. For make-vibe MCP server operations, the skill will guide you to create Makefile targets
+4. Follow the skill's workflow exactly
+5. All proof comes from make-vibe MCP server execution (if installed) or skill outputs
 
 ## Notes
 
@@ -229,9 +246,16 @@ If any of these appear, you've skipped the bootstrap. Return to Phase 1.
 Before declaring bootstrap complete, verify:
 
 - ✓ All project goals are documented and user-approved
-- ✓ HPC system constraints are understood (partition, time limits, modules, etc.)
+- ✓ Execution system is clear (localhost or R-CCS cloud)
 - ✓ All required skills are installed
 - ✓ Each skill has been tested and confirmed working
+- ✓ If make-vibe MCP server is required:
+  - ✓ r-ccs-cloud skill consulted for jobscript template
+  - ✓ `config.json` created with correct host/submitter
+  - ✓ `config.sh` jobscript template created from r-ccs-cloud guidance
+  - ✓ `Makefile` created with targets and `# @env:` annotations
+  - ✓ Reconnected to make-vibe MCP server (new targets discovered)
+  - ✓ make-vibe MCP tool tested (e.g., `/make_build` called successfully)
 - ✓ CLAUDE.md exists in project root
 - ✓ CLAUDE.md documents: goals, environment, installed skills, mandatory workflows
 - ✓ If make-vibe is installed, CLAUDE.md includes the "never run locally" rule
