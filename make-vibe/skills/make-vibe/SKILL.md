@@ -1,6 +1,12 @@
-# make-vibe Skills Guide
+---
+name: make-vibe
+description: Guide for using the make-vibe MCP server to execute Makefile targets on local or remote HPC systems. Use when you need to build, test, or run experiments without local compilation.
+user-invocable: true
+---
 
-The user wants you to use make-vibe to manage compilation and performance testing
+# make-vibe MCP Server Guide
+
+The make-vibe MCP server manages compilation and performance testing
 of this code on a remote HPC system (or locally). make-vibe exposes Makefile
 targets as MCP tools that you call instead of running `make` directly. Each
 tool call syncs the code to the remote machine, executes the target, and returns
