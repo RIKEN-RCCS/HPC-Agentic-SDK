@@ -14,11 +14,12 @@ The url is login.cloud.r-ccs.riken.jp.
 
 ## Available Systems
 
-| System   | Description    | Nodes | Modules to Load                 |
-|----------|----------------|-------|---------------------------------|
-| fx700    | Fujitsu A64FX  | 31    | system/fx700 FJSVstclanga       |
-| genoa    | AMD EPYC 9684X | 16    | system/genoa mpi/openmpi-x86_64 |
-| qc-gh200 | AMD EPYC 9684X | 8     | system/qc-gh200 nvhpc           |
+| System   | Description                         | Nodes | Modules to Load                 |
+|----------|-------------------------------------|-------|---------------------------------|
+| fx700    | Fujitsu A64FX                       | 31    | system/fx700 FJSVstclanga       |
+| genoa    | AMD EPYC 9684X                      | 16    | system/genoa mpi/openmpi-x86_64 |
+| qc-gh200 | NVIDIA GH200 Grace Hopper Superchip | 8     | system/qc-gh200 nvhpc           |
+| qc-a100	 | AMD EPYC 7713 x 2 + NVIDIA A100 x 8 | 2     | system/qc-a100 nvhpc            |
 
 ---
 
@@ -36,4 +37,15 @@ Template job script, e.g.:
 module load ...
 
 srun ./myapp
+```
+
+## Notes
+
+On the GPU nodes, options like:
+```
+#SBATCH --gres=gpu:1
+```
+Are not required. The exceptions are qc-a100, ai-l40s, and ai-h200-brc which require an option like:
+```
+#SBATCH --gpus=1
 ```
