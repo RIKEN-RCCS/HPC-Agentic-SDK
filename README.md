@@ -14,6 +14,26 @@ In Claude Code:
 
 This installs all plugins needed for HPC code tuning workflows.
 
+### Codex (experimental)
+
+You can also install skills from this repository directly into Codex.
+
+For a project-local install:
+
+```bash
+mkdir -p .codex/skills
+python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --repo RIKEN-RCCS/HPC-Agentic-SDK \
+  --path openacc/skills/openacc \
+  --dest "$PWD/.codex/skills"
+CODEX_HOME="$PWD/.codex" codex
+```
+
+Replace `openacc/skills/openacc` with the skill path you want from this repository.
+You can pass multiple `--path` values to install several skills at once.
+
+For a global install, omit `--dest` and start Codex normally.
+
 ## Skills
 
 | Skill | Description |
