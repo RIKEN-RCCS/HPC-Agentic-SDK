@@ -70,5 +70,27 @@
         "path": "bootstrap"
       }
     }
+    ,
+    {
+      "id": "hokusai",
+      "name": "Hokusai Agent",
+      "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN HOKUSAI BigWaterfall2 (HBW2) supercomputer",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/Hokusai-Agent.git",
+        "path": "."
+      }
+    }
+    ,
+    {
+      "id": "rikyu",
+      "name": "Rikyu Agent",
+      "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN AI4S supercomputer (NVIDIA GB200, aarch64)",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/Rikyu-Agent.git",
+        "path": "."
+      }
+    }
   ]
 }
