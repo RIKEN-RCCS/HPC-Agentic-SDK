@@ -34,15 +34,31 @@ You can pass multiple `--path` values to install several skills at once.
 
 For a global install, omit `--dest` and start Codex normally.
 
-## Skills
+## Plugins
 
-| Skill | Description |
-|-------|-------------|
+### Optimization tools
+
+| Plugin | Description |
+|--------|-------------|
 | [RAPTOR](./raptor/) | Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR |
 | [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
 | [make-vibe](./make-vibe/) | Expose Makefile targets as MCP tools for building and running code on local or remote HPC systems |
 | [r-ccs-cloud](./r-ccs-cloud/) | Reference for R-CCS cloud HPC systems: resources, modules, SLURM scripts, and login details |
 | [OpenACC](./openacc/) | Automatically insert OpenACC directives into Fortran code using a verified template library for reliable GPU parallelization |
+
+### RIKEN R-CCS facility agents
+
+Full cluster agents for job submission, monitoring, and filesystem operations via the [IRI Facility API](https://api.alcf.anl.gov/). Install one if you work on the corresponding machine.
+
+| Plugin | Machine | Description |
+|--------|---------|-------------|
+| [Hokusai Agent](https://github.com/RIKEN-RCCS/Hokusai-Agent) | HOKUSAI BigWaterfall2 (HBW2, x86_64) | Submit and monitor Slurm jobs, manage files, search the HBW2 User's Guide |
+| [Rikyu Agent](https://github.com/RIKEN-RCCS/Rikyu-Agent) | AI4S (NVIDIA GB200, aarch64) | Submit and monitor Slurm jobs, manage files, search the AI4S documentation |
+
+```
+/plugin install hokusai
+/plugin install rikyu
+```
 
 ## Overnight agent
 
