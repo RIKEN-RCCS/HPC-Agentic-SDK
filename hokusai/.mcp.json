@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "hokusai-hpc": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/server/run.sh",
+      "args": ["hokusai_mcp.hpc_server"],
+      "env": {}
+    },
+    "hokusai-docs": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/server/run.sh",
+      "args": ["hokusai_mcp.docs_server"],
+      "env": {}
+    }
+  }
+}

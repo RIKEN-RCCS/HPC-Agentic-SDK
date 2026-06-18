@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.egg-info/
+.DS_Store
+*.swp
+hpc-ai-mcp/
+.claude/settings.local.json
+server/dataset-*
+remotemanager.log
+# Copyrighted vendor manuals are not committed; the docs index is built from our
+# own data/hokusai_guide.md instead — see AGENTS.md.
+*.pdf
+# Third-party IRI spec (ALCF, no redistribution license) — fetch when needed (see AGENTS.md)
+openapi.json

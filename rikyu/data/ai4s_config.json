@@ -1,0 +1,35 @@
+{
+  "cluster": "ai4s_cluster",
+  "login_host": "login01.ai.r-ccs.riken.jp",
+  "architecture": "aarch64 (NVIDIA Grace)",
+  "gpu_type": "NVIDIA GB200",
+  "notes": [
+    "The partition name fixes the per-node resource share: GPUs, CPUs (36 per GPU), and memory (400GB per GPU).",
+    "Request GPUs with --gpus-per-node, not --gres.",
+    "Default wall time is 12 hours if --time is omitted; maximum is 96 hours except on 4n4gpu-p (unlimited).",
+    "Compute nodes have ~7TB local NVMe scratch at $USER_SCRATCH_DIR, deleted automatically when the job ends.",
+    "Slurm commands require a login shell environment.",
+    "Compute nodes are aarch64 — binaries and Python wheels built for x86_64 will not run."
+  ],
+  "partitions": [
+    {"name": "1n1gpu",   "default": true,  "max_nodes": 1, "gpus_per_node": 1, "cpus_per_node": 36,  "mem_per_node_gb": 400,  "max_time": "96:00:00", "qos": "gpu1"},
+    {"name": "1n2gpu",   "default": false, "max_nodes": 1, "gpus_per_node": 2, "cpus_per_node": 72,  "mem_per_node_gb": 800,  "max_time": "96:00:00", "qos": "gpu2"},
+    {"name": "1n4gpu",   "default": false, "max_nodes": 1, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu4"},
+    {"name": "2n4gpu",   "default": false, "max_nodes": 2, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu8"},
+    {"name": "4n4gpu",   "default": false, "max_nodes": 4, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu16"},
+    {"name": "4n4gpu-p", "default": false, "max_nodes": 4, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": null, "max_time": "unlimited", "qos": "gpu16"}
+  ],
+  "modules": {
+    "nvhpc": "Standard NVHPC environment",
+    "nvhpc-nompi": "NVHPC without MPI; use when you manage MPI yourself",
+    "nvhpc-hpcx": "NVHPC with InfiniBand and HPC-X",
+    "nvhpc-hpcx-cuda13": "NVHPC with HPC-X and CUDA 13 fixed",
+    "nvhpc-byo-compiler": "Use the system GCC (bring your own compiler)",
+    "cuda": "Bare CUDA toolkit (11.8 or 13.2)"
+  },
+  "storage": {
+    "home": "/home/<user>",
+    "node_local_scratch": "$USER_SCRATCH_DIR (~7TB NVMe, deleted after the job ends)"
+  },
+  "support": "rccs-ai4s-support [at] ml.riken.jp"
+}

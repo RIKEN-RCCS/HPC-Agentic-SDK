@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hokusai-mcp"
+version = "0.2.13"
+description = "MCP servers for the RIKEN HOKUSAI BigWaterfall2 supercomputer: Slurm interaction and documentation search."
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "remotemanager",
+    "httpx",
+    "numpy",
+]
+
+[project.scripts]
+hokusai-hpc-mcp = "hokusai_mcp.hpc_server:main"
+hokusai-docs-mcp = "hokusai_mcp.docs_server:main"
+
+[tool.setuptools.packages.find]
+include = ["hokusai_mcp*"]

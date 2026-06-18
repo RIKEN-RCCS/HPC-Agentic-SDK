@@ -1,0 +1,98 @@
+[
+  {
+    "breadcrumb": "Welcome",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#welcome",
+    "text": "This guide provides basic information for using the AI4S Supercomputer during early access, including login instructions and simple Slurm job examples.\n\nFor hardware information about this system, refer to [https://github.com/RIKEN-RCCS/AI-for-Science-Supercomputer](https://github.com/RIKEN-RCCS/AI-for-Science-Supercomputer).\n\nTo request an account for the AI4S Supercomputer early access program, submit the account registration form.\n\n[Account registration form](https://forms.cloud.microsoft/r/M7ZdHajg9G){ .md-button .md-button--primary .registration-button }",
+    "id": 0
+  },
+  {
+    "breadcrumb": "Welcome > SSH Login",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#ssh-login",
+    "text": "Replace `USERNAME` below with your own username.\n\n```bash\n$ ssh USERNAME@login01.ai.r-ccs.riken.jp\n```",
+    "id": 1
+  },
+  {
+    "breadcrumb": "Welcome > Usage",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#usage",
+    "text": "Submit jobs to the system using Slurm. The following partitions are available.\n\n| Partition | Max Nodes | Max GPUs/Node | Max Wall Time | Max Memory/Node |\n| --------- | --------: | ------------: | ------------- | --------------- |\n| 1n1gpu    |         1 |             1 | 96 hours      | 400GB           |\n| 1n2gpu    |         1 |             2 | 96 hours      | 800GB           |\n| 1n4gpu    |         1 |             4 | 96 hours      | 1600GB          |\n| 2n4gpu    |         2 |             4 | 96 hours      | 1600GB          |\n| 4n4gpu    |         4 |             4 | 96 hours      | 1600GB          |\n| 4n4gpu-p  |         4 |             4 | unlimited     | unlimited       |",
+    "id": 2
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Module environment",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#module-environment",
+    "text": "The system provides several module environments for development and execution with the NVIDIA HPC Software Development Kit.\n\n| Module | Description |\n| ------ | ----------- |\n| nvhpc | Standard NVHPC environment |\n| nvhpc-nompi | NVHPC without MPI; use this when you manage MPI yourself |\n| nvhpc-hpcx | NVHPC with IB and HPC-X |\n| nvhpc-hpcx-cuda13 | NVHPC with HPC-X and CUDA 13 fixed |\n| nvhpc-byo-compiler | Use the system GCC; BYO means bring your own |",
+    "id": 3
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Module environment > List available modules",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#list-available-modules",
+    "text": "Use `module avail` to see the detailed list of available modules.\n\n```bash\n$ module avail\n```",
+    "id": 4
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Module environment > List loaded modules",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#list-loaded-modules",
+    "text": "Use `module list` to check which modules are currently loaded.\n\n```bash\n$ module list\n```",
+    "id": 5
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Module environment > Load a module",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#load-a-module",
+    "text": "Use `module load` to load the environment you want to use.\n\n```bash\n$ module load nvhpc\n```",
+    "id": 6
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Module environment > Switch modules",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#switch-modules",
+    "text": "Unload the current module before loading another one.\n\n```bash\n$ module unload nvhpc\n$ module load nvhpc-hpcx\n```",
+    "id": 7
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Module environment > Inspect a module",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#inspect-a-module",
+    "text": "Use `module show` to check what a module changes in your environment.\n\n```bash\n$ module show nvhpc-hpcx\n```",
+    "id": 8
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Submit a batch job",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#submit-a-batch-job",
+    "text": "Create a job script such as `job.sh`. The following example requests one node and one GPU on the `1n1gpu` partition.\n\n```bash\n#!/bin/bash\n#SBATCH --job-name=test-job\n#SBATCH --partition=1n1gpu\n#SBATCH --nodes=1\n#SBATCH --gpus-per-node=1\n#SBATCH --time=00:10:00\n\nmodule load nvhpc\n\nhostname\nnvidia-smi\n```\n\nSubmit the job with `sbatch`.\n\n```bash\n$ sbatch job.sh\n```\n\nCheck your jobs with `squeue`.\n\n```bash\n$ squeue -u $USER\n```",
+    "id": 9
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Run an interactive job > With salloc",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#with-salloc",
+    "text": "Use `salloc` to allocate resources for an interactive session. The following example requests one node and one GPU on the `1n1gpu` partition for 10 minutes.\n\n```bash\n$ salloc --partition=1n1gpu --nodes=1 --gpus-per-node=1 --time=00:10:00\n```\n\nAfter the allocation starts, use `srun` to run commands on the allocated node.\n\n```bash\n$ srun hostname\n$ srun nvidia-smi\n```\n\nWhen you are finished, run `exit` to release the interactive allocation.\n\n```bash\n$ exit\nexit\nsalloc: Relinquishing job allocation 1066\n```",
+    "id": 10
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Run an interactive job > With srun",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#with-srun",
+    "text": "Use `srun --pty bash` to start an interactive shell on a compute node. The following example requests one node and one GPU on the `1n1gpu` partition for 10 minutes.\n\n```bash\n$ srun --partition=1n1gpu --nodes=1 --gpus-per-node=1 --time=00:10:00 --pty bash\n```\n\nWhen you are finished, run `exit` to leave the shell and end the `srun` job.\n\n```bash\n$ exit\nexit\n```",
+    "id": 11
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Cancel a job",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#cancel-a-job",
+    "text": "Cancel a submitted or running job with `scancel`. Replace `JOBID` with the job ID shown by `sbatch` or `squeue`.\n\n```bash\n$ scancel JOBID\n```",
+    "id": 12
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Check partition status",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#check-partition-status",
+    "text": "Use `sinfo` to check the status of partitions and nodes.\n\n```bash\n$ sinfo\n```\n\nTo check a specific partition, use `-p`.\n\n```bash\n$ sinfo -p 1n1gpu\n```",
+    "id": 13
+  },
+  {
+    "breadcrumb": "Welcome > Usage > Local scratch storage",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#local-scratch-storage",
+    "text": "Each compute node provides a local scratch area on an approximately 7TB NVMe\nSSD. Use the `USER_SCRATCH_DIR` environment variable to access this scratch area\nfrom your job.\n\nThis storage is useful when you need fast local SSD access for temporary files,\ndatasets, checkpoints, or intermediate results during computation. Files in this\narea are automatically deleted after the job finishes, so copy any results that\nyou need to keep to your persistent storage before the job ends.\n\n```bash\n#!/bin/bash\n#SBATCH --job-name=scratch-example\n#SBATCH --partition=1n1gpu\n#SBATCH --nodes=1\n#SBATCH --gpus-per-node=1\n#SBATCH --time=00:10:00\n\nmodule load nvhpc\n\necho \"Scratch directory: ${USER_SCRATCH_DIR}\"\n\n./my_application > ${USER_SCRATCH_DIR}/output.log\n\n# Copy results that must be kept before the job finishes.\n# SLURM_SUBMIT_DIR is the directory where you ran the sbatch command.\ncp ${USER_SCRATCH_DIR}/output.log ${SLURM_SUBMIT_DIR}/\n```",
+    "id": 14
+  },
+  {
+    "breadcrumb": "Welcome > Contact",
+    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#contact",
+    "text": "For inquiries, contact the support team by email: `rccs-ai4s-support [at] ml.riken.jp`.",
+    "id": 15
+  }
+]

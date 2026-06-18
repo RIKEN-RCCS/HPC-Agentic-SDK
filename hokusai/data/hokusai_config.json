@@ -1,0 +1,82 @@
+{
+  "cluster": "HOKUSAI BigWaterfall2 (HBW2)",
+  "operator": "Information Security & Systems Division, RIKEN",
+  "login_host": "hokusai.riken.jp (DNS round-robin to hokusai1-4.riken.jp)",
+  "portal": "https://hokusai.riken.jp/hbw2/",
+  "scheduler": "Slurm",
+  "architecture": "x86_64 (Intel Xeon)",
+  "subsystems": {
+    "MPC": {
+      "name": "Massively Parallel Computer",
+      "nodes": 312,
+      "model": "PRIMERGY CX2550 M7",
+      "cpu": "Intel Xeon Max 9480 (1.9 GHz), 2 sockets x 56 cores = 112 cores/node",
+      "memory_per_node_gib": 119,
+      "local_disk": "~960 GB NVMe per node (480 GB x 2)",
+      "role": "Primary compute — most jobs run here"
+    },
+    "LMC": {
+      "name": "Large Memory Computing Server",
+      "nodes": 2,
+      "model": "PRIMERGY RX4770 M7",
+      "cpu": "Intel Xeon Gold 6418H (2.1 GHz), 96 cores/node",
+      "memory_per_node_gib": 2700,
+      "role": "Large-memory CPU jobs (up to ~2.7 TiB/node)"
+    },
+    "GPU": {
+      "name": "GPU Server (BWGPU)",
+      "nodes": 4,
+      "model": "PRIMERGY GX2060 M7",
+      "cpu": "Intel Xeon Platinum 8480+ (2.0 GHz), 112 cores/node",
+      "gpu": "4x NVIDIA H100 (SXM5) per node",
+      "memory_per_node_gib": 512,
+      "role": "Small GPU server, mainly for postprocessing — most HBW2 work is CPU"
+    }
+  },
+  "notes": [
+    "HBW2 is a CPU-first system: the 312-node MPC (and the 2-node large-memory LMC) carry the bulk of the workload. There are only 4 GPU nodes, intended for postprocessing.",
+    "Jobs are described in CPU terms: --nodes, --ntasks-per-node (MPI ranks), --cpus-per-task (threads), and --mem. Set OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK for threaded code.",
+    "--account <projectID> is required for job execution (project IDs look like RB999999 for RIKEN, or HP-derived for HPCI). Check core-time with 'listcpu -p <project>'.",
+    "Architecture is x86_64 Intel Xeon — use the Intel oneAPI compilers (module load intel) and Intel MKL (-qmkl) for best performance.",
+    "GPUs are requested with --gpus on the gpu partition (1 GPU => 28 CPU cores). They are optional and rarely needed.",
+    "Default elapsed time is 1 hour if --time is omitted. The default memory per core is 1 GiB (MPC), 30 GiB (LMC), 4 GiB (GPU).",
+    "/tmp_work is scratch space, auto-deleted when its files are older than one week.",
+    "From compute nodes, reach the internet via the front-end Squid proxy: export https_proxy=$SLURM_SUBMIT_HOST:3128"
+  ],
+  "partitions": [
+    {"name": "mpc",   "default": true,  "subsystem": "MPC", "max_nodes": 64, "max_cores": 7168, "mem_per_node_gib": 112,  "max_time": "24:00:00"},
+    {"name": "mpc_l", "default": false, "subsystem": "MPC", "max_nodes": 8,  "max_cores": 896,  "mem_per_node_gib": 112,  "max_time": "72:00:00"},
+    {"name": "lmc",   "default": false, "subsystem": "LMC", "max_nodes": 2,  "max_cores": 192,  "mem_per_node_gib": 2880, "max_time": "24:00:00"},
+    {"name": "gpu",   "default": false, "subsystem": "GPU", "max_nodes": 1,  "max_cores": 112,  "mem_per_node_gib": 448,  "max_time": "72:00:00", "gpus_per_node": 4, "gpu_type": "NVIDIA H100"},
+    {"name": "gpu_i", "default": false, "subsystem": "GPU", "max_nodes": 1,  "max_cores": 112,  "mem_per_node_gib": 448,  "max_time": "24:00:00", "gpus_per_node": 4, "gpu_type": "NVIDIA H100", "interactive": true}
+  ],
+  "project_concurrency_limits": {
+    "MPC": {"running_cores": 7168, "submitted_jobs": 5000},
+    "LMC": {"running_cores": 192,  "submitted_jobs": 100},
+    "GPU": {"running_cores": 448,  "submitted_jobs": 100}
+  },
+  "modules": {
+    "intel": "Intel oneAPI Base & HPC Toolkit (compilers, MKL, Intel MPI); loading 'intel' also loads intelmpi",
+    "intelmpi/impi_23.2.0": "Intel MPI Library",
+    "gcc/13.2.0": "GNU compilers (default GCC)",
+    "openmpi/4.1.6": "Open MPI (conflicts with intelmpi)",
+    "boost/1.83.0": "Boost C++ libraries",
+    "fftw-mpi-double/3.3.10": "FFTW (MPI, double precision)",
+    "cuda/12.4": "NVIDIA CUDA Toolkit (GPU server only)"
+  },
+  "applications": ["Gaussian", "ADF", "AMBER", "GAMESS", "GROMACS", "NAMD", "ROOT", "VMD", "GaussView"],
+  "compilers": {
+    "intel_classic": "ifort / icc / icpc; MPI: mpiifort / mpiicc / mpiicpc",
+    "intel_llvm": "ifx / icx / icpx; MPI: mpiifx / mpiicx / mpiicpx",
+    "blas_lapack": "Intel MKL via -qmkl=sequential | -qmkl=parallel | -qmkl=cluster (ScaLAPACK)",
+    "gpu": "nvcc (CUDA Toolkit) on the GPU server"
+  },
+  "storage": {
+    "home": "/home/<user> — 4 TB quota, 10M inodes (shared SFS, Lustre)",
+    "data": "/data/<projectID> — per-project data area, 1 TB+ (usage fee; apply via portal)",
+    "tmp_work": "/tmp_work — temporary area, auto-deleted when files are older than 1 week",
+    "shared_total": "9.8 PB shared storage (SFS)",
+    "quota_command": "lfs quota -p <UID|GID> <path>"
+  },
+  "support": "https://i.riken.jp/en/supercom/contact/"
+}

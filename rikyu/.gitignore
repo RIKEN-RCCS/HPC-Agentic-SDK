@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.egg-info/
+.DS_Store
+*.swp
+hpc-ai-mcp/
+.claude/settings.local.json
+server/dataset-*
+remotemanager.log
+# Third-party IRI spec (ALCF, no redistribution license) — fetch when needed (see AGENTS.md)
+openapi.json
