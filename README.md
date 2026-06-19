@@ -14,9 +14,18 @@ In Claude Code:
 
 This installs all plugins needed for HPC code tuning workflows.
 
-### Codex (experimental)
+### Codex
 
-You can also install skills from this repository directly into Codex.
+Codex can install plugins from this repository through the plugin marketplace:
+
+```bash
+codex plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
+```
+
+Then open `/plugins` in Codex and install the plugins you need.
+
+You can also install individual skills from this repository directly into Codex
+when you only need a skill and not the full plugin wrapper or MCP server.
 
 For a project-local install:
 

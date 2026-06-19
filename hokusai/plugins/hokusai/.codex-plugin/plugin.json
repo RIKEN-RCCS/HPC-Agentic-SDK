@@ -1,0 +1,26 @@
+{
+  "name": "hokusai",
+  "version": "0.2.13",
+  "description": "Interact with the RIKEN HOKUSAI BigWaterfall2 (HBW2) supercomputer: submit and monitor Slurm jobs, manage files on the cluster, and search the official User's Guide.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/Hokusai-Agent",
+  "keywords": ["hpc", "slurm", "riken", "hokusai", "bigwaterfall", "supercomputer"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Hokusai",
+    "shortDescription": "Submit and monitor HBW2 Slurm jobs and search HOKUSAI docs.",
+    "longDescription": "Interact with the RIKEN HOKUSAI BigWaterfall2 supercomputer from Codex: submit and monitor Slurm jobs, manage files on the cluster, and search the built-in HBW2 guide.",
+    "developerName": "RIKEN R-CCS",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Show HOKUSAI cluster status.",
+      "Submit a small HBW2 test job.",
+      "Search the HBW2 guide."
+    ]
+  }
+}

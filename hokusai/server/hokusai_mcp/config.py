@@ -24,7 +24,9 @@ it (or if the endpoint is unreachable) search falls back to BM25 keyword search.
 """
 import json
 import os
+from contextlib import ExitStack
 from functools import lru_cache
+from importlib import resources
 from pathlib import Path
 
 CONFIG_PATH = Path(os.environ.get("HOKUSAI_CONFIG", "~/.hokusai/config.json")).expanduser()
@@ -87,17 +89,19 @@ def embed_api_key() -> str:
 
 # --- Static data ------------------------------------------------------------
 
-# Prefer CLAUDE_PLUGIN_ROOT (set by the Claude Code plugin system at runtime)
-# so data is found regardless of install layout. Fall back to __file__-relative
-# for development runs directly from the source tree.
-_DATA_DIR = (
-    Path(os.environ["CLAUDE_PLUGIN_ROOT"]) / "data"
-    if "CLAUDE_PLUGIN_ROOT" in os.environ
-    else Path(__file__).resolve().parent.parent.parent / "data"
-)
+_RESOURCE_STACK = ExitStack()
+
+
+def _bundled_data_dir() -> Path:
+    """Filesystem path to package data, including zip-safe extraction fallback."""
+    data = resources.files("hokusai_mcp") / "data"
+    return _RESOURCE_STACK.enter_context(resources.as_file(data))
+
+
+_DATA_DIR = _bundled_data_dir()
 
 DOCS_INDEX_DIR = Path(os.environ.get("HOKUSAI_DOCS_INDEX", _DATA_DIR / "docs_index"))
-# The documentation source is our own original guide (data/hokusai_guide.md) —
+# The documentation source is our own original packaged guide —
 # facts in our own words, not a copy of the vendor manual — so it is committed
 # and the index can be freely distributed. `rag.ingest` chunks it by heading.
 DOCS_SOURCE = Path(os.environ.get("HOKUSAI_DOCS_SOURCE", _DATA_DIR / "hokusai_guide.md"))

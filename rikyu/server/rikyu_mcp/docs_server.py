@@ -1,6 +1,7 @@
 """MCP server for searching the official AI4S supercomputer documentation.
 
-Read-only and needs no SSH access. Uses the pre-built index in data/docs_index;
+Read-only and needs no SSH access. Uses the pre-built packaged index in
+rikyu_mcp/data/docs_index;
 queries are embedded against the configured serving infrastructure when
 available, with automatic fallback to keyword search.
 """

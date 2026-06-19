@@ -1,10 +1,10 @@
 """Build the documentation index from the HokusaiAgent guide.
 
-The docs source is `data/hokusai_guide.md` — an original, plain-language guide to
+The docs source is `hokusai_mcp/data/hokusai_guide.md` — an original, plain-language guide to
 HOKUSAI BigWaterfall2 written for users working through the agent. (It is *not* a
 copy of the vendor User's Guide: facts only, in our own words, so the committed
 index can be freely distributed.) This ingester chunks the markdown by heading
-and writes data/docs_index/chunks.json (+ embeddings.npy).
+and writes hokusai_mcp/data/docs_index/chunks.json (+ embeddings.npy).
 
     python -m hokusai_mcp.rag.ingest                  # bundled guide + embeddings
     python -m hokusai_mcp.rag.ingest --source FILE    # use a specific markdown file

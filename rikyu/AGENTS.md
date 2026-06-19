@@ -1,8 +1,8 @@
 # RikyuAgent — agent instructions
 
-Claude Code plugin for the RIKEN AI4S supercomputer: two MCP servers
-(`rikyu-hpc` for Slurm, `rikyu-docs` for documentation RAG) plus skills.
-See README.md for the user-facing overview.
+Claude Code and Codex plugin for the RIKEN AI4S supercomputer: two MCP servers
+(`rikyu-hpc` for Slurm, `rikyu-docs` for documentation RAG) plus skills. See
+README.md for the user-facing overview.
 
 ## Design rules (read before changing code)
 
@@ -25,9 +25,15 @@ See README.md for the user-facing overview.
 - **Never write to stdout in server code** — the MCP stdio transport uses it
   for JSON-RPC and any stray print corrupts the session. Log to stderr.
   remotemanager prints progress to stdout; middleware redirects it.
-- **Tools are thin verbs; workflow knowledge lives in `skills/`.** If you're
+- **Tools are thin verbs; workflow knowledge lives in `plugins/rikyu/skills/`.** If you're
   writing a long docstring telling the model *when* to do something, it
   probably belongs in a SKILL.md instead.
+- **The MCP runtime must be self-contained under `server/`.** Plugin metadata is
+  shared across Claude Code and Codex, but `plugins/rikyu/.mcp.json` launches the
+  servers with `uv tool run --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server`.
+  Do not depend on `CLAUDE_PLUGIN_ROOT`, Codex-specific root variables, or
+  repo-root `data/` paths at runtime. Anything the MCP server needs after uv
+  installation must be package data under `server/rikyu_mcp/data/`.
 - **`models.py` follows PSI/J shapes** (JobSpec/ResourceSpec/JobAttributes/
   JobState). Deviations are listed at the bottom of `IRI_CHECKLIST.md` — add
   to that list if you introduce one.
@@ -63,8 +69,9 @@ update the constants, re-run ingest, and commit the new `embeddings.npy`.
 
 **To rebuild the index with embeddings:** run
 `python -m rikyu_mcp.rag.ingest` — produces
-`data/docs_index/embeddings.npy` alongside `chunks.json`. Commit both files
-so the plugin works without a network round-trip to re-embed.
+`server/rikyu_mcp/data/docs_index/embeddings.npy` alongside `chunks.json`.
+Commit both files as package data so the uv-installed server works without a
+network round-trip to re-embed.
 
 ## Development workflow
 
@@ -82,6 +89,11 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
   touching `compute.py`, `middleware.py`, or `models.py`.
 - Test the plugin in Claude Code:
   `/plugin marketplace add <repo-path>` → `/plugin install rikyu@rikyu-marketplace`.
+- Test the plugin in Codex:
+  `codex plugin marketplace add <repo-path>` → open `/plugins` and install `rikyu`.
+- Validate the install-path runtime with:
+  `uv tool run --quiet --from ./server rikyu-doctor`. The marketplace runtime
+  uses the same package boundary, but from GitHub `main`.
 - User settings live in `~/.rikyu/config.json` (may contain an embedding API
   key — never commit it, never echo the key). The `ai4s-configuring` skill
   documents the schema.
@@ -93,10 +105,17 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 ## Repository map
 
 ```
-.claude-plugin/        plugin + marketplace manifests
-.mcp.json              server launch config (via server/run.sh, auto-venv)
+.claude-plugin/        Claude Code marketplace manifest
+.agents/plugins/       Codex marketplace manifest
+plugins/rikyu/         actual plugin payload for both Claude Code and Codex
+  .claude-plugin/      Claude Code plugin manifest
+  .codex-plugin/       Codex plugin manifest
+  .mcp.json            shared MCP launch config (uv tool run from main)
+  skills/              ai4s-configuring, ai4s-submitting-jobs,
+                       ai4s-monitoring-jobs, ai4s-reference, ai4s-demo
 IRI_CHECKLIST.md       API coverage tracker — keep in sync with hpc_server.py
 server/rikyu_mcp/
+  data/                packaged static facts and docs_index
   middleware.py        SSH layer — the only place that talks to the cluster
   models.py            PSI/J-style schemas + Slurm state normalization
   compute.py           JobSpec → sbatch, sacct/squeue parsing
@@ -105,9 +124,7 @@ server/rikyu_mcp/
   rag/                 embed client / index store / ingest pipeline
   doctor.py            health checks (python -m rikyu_mcp.doctor)
   serving.py           shared CLI entry point
-data/ai4s_config.json  static cluster facts served by get_facility
-data/docs_index/       committed docs index (chunks.json [+ embeddings.npy])
-skills/                ai4s-configuring, ai4s-submitting-jobs, ai4s-monitoring-jobs,
-                       ai4s-reference, ai4s-demo (machine-prefixed so this and the
-                       hokusai plugin can be installed at once without collisions)
 ```
+
+Skill names are machine-prefixed so this and the Hokusai plugin can be
+installed at once without collisions.

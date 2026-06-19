@@ -40,13 +40,13 @@ what's missing or being changed.
    API key. Never commit it or echo the key back in conversation.
 4. **Validate** with the doctor (checks config, SSH, Slurm, endpoint, index):
    ```bash
-   "$CLAUDE_PLUGIN_ROOT"/server/run.sh rikyu_mcp.doctor
+   uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-doctor
    ```
-   (From a checkout of the repo: `server/run.sh rikyu_mcp.doctor`.)
+   (From a checkout of the repo: `server/run.sh rikyu_mcp.doctor` also works.)
 5. **If the embedding endpoint was added or changed**, rebuild the docs index
    so it gains vector embeddings:
    ```bash
-   "$CLAUDE_PLUGIN_ROOT"/server/run.sh rikyu_mcp.rag.ingest
+   server/run.sh rikyu_mcp.rag.ingest
    ```
    Then run the doctor again — it should report "chunks with embeddings".
 

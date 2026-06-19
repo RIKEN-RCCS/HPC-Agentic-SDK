@@ -31,9 +31,15 @@ constantly steers users wrong.
 ## 1. Repository architecture
 
 ```
-.claude-plugin/        plugin + marketplace manifests
-.mcp.json              server launch config
+.claude-plugin/        Claude Code marketplace manifest
+.agents/plugins/       Codex marketplace manifest
+plugins/<machine>/     actual plugin payload for both Claude Code and Codex
+  .claude-plugin/      Claude Code plugin manifest
+  .codex-plugin/       Codex plugin manifest
+  .mcp.json            shared MCP launch config (uv tool run from main)
+  skills/              one SKILL.md per user-facing workflow
 server/rikyu_mcp/
+  data/                packaged static facts and docs index
   middleware.py        THE ONLY FILE THAT TALKS TO THE CLUSTER
   config.py            settings: env > file > defaults
   models.py            PSI/J-style schemas (JobSpec, Job, JobState, …)
@@ -43,11 +49,20 @@ server/rikyu_mcp/
   rag/                 embed / store / ingest
   doctor.py            health checks
   serving.py           shared CLI entry point
-data/
-  ai4s_config.json     static cluster facts (returned by get_facility)
-  docs_index/          chunks.json + embeddings.npy
-skills/                one SKILL.md per user-facing workflow
 ```
+
+The plugin metadata is deliberately thin. Claude Code and Codex both read the
+same plugin payload under `plugins/<machine>/`; the MCP servers themselves are
+installed as a Python package from `server/` with:
+
+```bash
+uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-hpc-mcp
+uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-docs-mcp
+```
+
+Do not use client-specific plugin-root variables for runtime data. A port must
+keep the MCP package self-contained under `server/`, including docs and static
+machine facts as package data.
 
 **What is generic (keep as-is):**
 - `middleware.py` — SSH layer, base64 encoding, path handling, error raising.
@@ -60,6 +75,9 @@ skills/                one SKILL.md per user-facing workflow
   when `embeddings.npy` is absent or the endpoint is unreachable).
 - `docs_server.py` — generic RAG tool surface; no changes needed.
 - `serving.py` — no changes needed.
+- `plugins/<machine>/.mcp.json` launch pattern — keep the uv
+  `tool run --from ...@main#subdirectory=server` shape, changing only the
+  repository URL and console script names for the new port.
 
 **What is machine-specific (must be replaced):**
 - `config.py` — `ssh_host()` default, the embedding `EMBED_BASE_URL`/`EMBED_MODEL`
@@ -78,10 +96,14 @@ skills/                one SKILL.md per user-facing workflow
   The IRI-grouped structure and tool names must be preserved; only the
   shell commands inside them change.
 - `rag/ingest.py` — doc-source-specific (chunking logic); see Phase 5.
-- `data/ai4s_config.json` — replace with the new machine's static facts.
-- `data/docs_index/` — rebuild from the new machine's documentation.
-- `skills/` — replace SKILL.md content with machine-specific workflows.
+- `server/rikyu_mcp/data/ai4s_config.json` — replace with the new machine's static facts.
+- `server/rikyu_mcp/data/docs_index/` — rebuild from the new machine's documentation.
+- `plugins/<machine>/skills/` — replace SKILL.md content with machine-specific workflows.
 - `IRI_CHECKLIST.md` — update to track coverage for the new machine.
+- `plugins/<machine>/.claude-plugin/plugin.json`,
+  `plugins/<machine>/.codex-plugin/plugin.json`, and both marketplace manifests
+  — update names, descriptions, repository URLs, source paths, and display
+  metadata for the new machine.
 
 ---
 
@@ -117,7 +139,7 @@ to stderr). Instead, `run_command` raises `RuntimeError` on any non-zero
 exit code. FastMCP converts that to a clean MCP tool error. Callers never
 need to parse error text from the return value.
 
-**Tools are thin verbs; workflow knowledge belongs in `skills/`.**
+**Tools are thin verbs; workflow knowledge belongs in `plugins/<machine>/skills/`.**
 A tool docstring should describe what it does, not when to use it or what
 to do next. Long sequences of steps, retry logic, and "first do X then Y"
 belong in SKILL.md files, not in docstrings.
@@ -168,9 +190,9 @@ Concretely, propagate the usage model into:
 - `models.py` — `ResourceSpec` field defaults (e.g. a default GPU on a GPU-first
   machine vs default `gpus=None` on a CPU-first one) and `JobAttributes`
   `queue_name` (the dominant partition) and `duration` (the site default).
-- `data/<machine>_config.json` and `get_facility` — describe the machine as it
+- `server/<package>/data/<machine>_config.json` and `get_facility` — describe the machine as it
   is used (lead with the dominant subsystem).
-- `skills/` and `/demo` — frame submission, monitoring, and the demo job around
+- `plugins/<machine>/skills/` and `/demo` — frame submission, monitoring, and the demo job around
   the default run mode. The demo's test job should be a *typical* job for this
   machine, not a leftover from the source repo.
 
@@ -195,8 +217,9 @@ Record answers to these — they become the static config JSON and inform the re
 - What is the SSH hostname / alias convention?
 - What modules exist and how is the module system loaded? Any conflicts?
 
-Fill in `data/<machine>_config.json` from the docs before writing any tools.
-`get_facility` should return accurate, usage-aware data from day one.
+Fill in `server/<package>/data/<machine>_config.json` from the docs before
+writing any tools. `get_facility` should return accurate, usage-aware data from
+day one.
 
 ---
 
@@ -250,8 +273,12 @@ running experiments over documentation here.
   often **shared infrastructure** reusable across machines at the same site
   (AI4S and HBW2 use the same RIKEN BGE-M3 endpoint); don't assume it's
   machine-specific. Without a key or endpoint, search degrades to BM25.
+- Keep `DOCS_INDEX_DIR` and the static cluster config under
+  `server/<package>/data/` and load them as package data. Environment overrides
+  may exist for development, but the installed MCP runtime must not need the repo
+  root or a plugin-root variable to find its data.
 - Point the doc-source setting at the new docs (`DOCS_REPO_URL` for a mkdocs
-  repo; a PDF path for others) and set `DOCS_SITE_BASE`.
+  repo; an original bundled markdown guide for others) and set `DOCS_SITE_BASE`.
 - Keep the env-var precedence chain: `RIKYU_HOST`, `RIKYU_EMBED_API_KEY`,
   `RIKYU_CONFIG` (add `RIKYU_ACCOUNT` if you implement a default account).
 
@@ -342,7 +369,7 @@ the source is. AI4S's source is a public, openly-licensed **mkdocs repo**, so it
 clones and chunks the markdown:
 
 ```bash
-# clone the machine's doc repo into data/ or a temp dir
+# clone the machine's doc repo into a temp dir
 git clone --depth 1 <docs-repo-url> /tmp/newdocs
 
 # run ingest (embeds by default; --no-embed for keyword-only)
@@ -368,18 +395,19 @@ background the model already knows, command/flag references, job-script
 boilerplate, and anything queryable on the front end (`sinfo`/`sacct`/`module
 avail`/quota/budget). The result is short, stays current, and is freely
 distributable. (HBW2 took exactly this route — its source is a hand-written
-`data/hokusai_guide.md`, not the vendor PDF.) Then `ingest.py` simply chunks that
-markdown by heading.
+`server/hokusai_mcp/data/hokusai_guide.md`, not the vendor PDF.) Then
+`ingest.py` simply chunks that markdown by heading.
 
 Embeddings use the shared endpoint (`EMBED_BASE_URL`/`EMBED_MODEL` constants);
 ingest needs an API key to compute them and falls back to a BM25-only index
 without one. At query time, `store.py` uses vectors when `embeddings.npy` exists
 and the endpoint is reachable, else falls back to BM25 over the same chunks.
 
-**Commit both `chunks.json` and `embeddings.npy`** so the plugin works without a
-network round-trip. The embedding model is locked to whatever was used at ingest
-time — never make it user-configurable; a different model at query time silently
-produces wrong cosine-similarity results. Re-run ingest if the model ever changes.
+**Commit both `chunks.json` and `embeddings.npy` as package data** so the
+uv-installed server can search docs without needing the repository checkout. The
+embedding model is locked to whatever was used at ingest time — never make it
+user-configurable; a different model at query time silently produces wrong
+cosine-similarity results. Re-run ingest if the model ever changes.
 
 ---
 
@@ -406,7 +434,55 @@ job. The failure-mode lists, too, should reflect what actually goes wrong here
 
 ---
 
-## 9. Phase 7 — Validate
+## 9. Phase 7 — Plugin packaging
+
+Keep Claude Code and Codex packaging side by side:
+
+- Root `.claude-plugin/marketplace.json` for Claude Code.
+- Root `.agents/plugins/marketplace.json` for Codex.
+- `plugins/<machine>/.claude-plugin/plugin.json` and
+  `plugins/<machine>/.codex-plugin/plugin.json` as client-specific manifests.
+- `plugins/<machine>/.mcp.json` as the shared MCP server config for both
+  clients.
+
+Both marketplace catalogs must point at the real plugin directory, for example
+`./plugins/rikyu`. Do not point Codex at `./`; the CLI may add the marketplace
+source but then list zero available plugins.
+
+The MCP launch command should be client-neutral and uv-based:
+
+```json
+{
+  "command": "uv",
+  "args": [
+    "tool",
+    "run",
+    "--quiet",
+    "--from",
+    "git+https://github.com/<owner>/<repo>.git@main#subdirectory=server",
+    "<machine>-hpc-mcp"
+  ]
+}
+```
+
+Use `main`, not a pinned tag, for this repository family. That means the MCP tool
+surface must stay backward-compatible with already-installed skill text: add
+tools and fields freely, but avoid renaming/removing tools or changing response
+shapes without a transition period.
+
+Before changing `plugins/<machine>/.mcp.json`, make sure the local package path
+works:
+
+```bash
+uv tool run --quiet --from ./server <machine>-doctor
+```
+
+If this fails because data is missing, fix package data first. Do not paper over
+it by adding client-specific root variables.
+
+---
+
+## 10. Phase 8 — Validate
 
 **`doctor.py`** runs all health checks in order:
 1. Config file present and parseable
@@ -421,9 +497,13 @@ Extend `doctor.py` for any new checks the machine needs. All checks must print
 
 **Offline validation** (no cluster needed): byte-compile everything, import both
 servers, render a JobSpec for the default *and* GPU cases (confirm the right
-flags and, if applicable, the account fallback), load the docs index, and run a
-couple of `search_docs` queries (confirm `method=vector` with a key, `bm25`
-without).
+flags and, if applicable, the account fallback), load the docs index from package
+data, and run a couple of `search_docs` queries (confirm `method=vector` with a
+key, `bm25` without).
+
+**Install-path validation**: run the uv package command exactly as plugin users
+will run it. Use `--from ./server` locally before pushing, then the GitHub `main`
+URL after the package-data refactor lands on `main`.
 
 **Smoke tests** (`tests/smoke.py`): the read-only suite must pass without a
 cluster allocation; the `--job` suite submits a real *typical* job (a 1-GPU job
@@ -433,11 +513,14 @@ is absent.
 
 ---
 
-## 10. Common failure modes and fixes
+## 11. Common failure modes and fixes
 
 | symptom | cause | fix |
 |---|---|---|
 | Defaults/skills steer users wrong | source repo's usage model carried over unexamined | set ResourceSpec/queue defaults, skills, and demo from the target's actual run mode (Phase 1) |
+| Plugin works from checkout but fails after install | MCP server reads repo-root files that uv did not install | move runtime files under `server/<package>/data/` and include them in package data |
+| Claude Code works but Codex fails, or vice versa | MCP config depends on client-specific plugin root variables | keep `.mcp.json` uv-based and client-neutral |
+| First MCP startup cannot find `uv` | user installed plugin before installing uv or PATH was not refreshed | install uv, restart the client, then reload/reinstall the plugin |
 | Missing endpoints the machine could serve, or dead tools it can't | inherited the source's IRI coverage verdicts | re-decide every `IRI_CHECKLIST.md` row against the target's real capabilities (Phase 4) |
 | GPUs never allocate / flag rejected | wrong GPU flag for the site | confirm `--gpus-per-node` vs `--gpus` vs `--gres`; emit only when GPUs requested |
 | Every job rejected at submit | scheduler requires an account/project | add `default_account()` + inject it in `render_script` |

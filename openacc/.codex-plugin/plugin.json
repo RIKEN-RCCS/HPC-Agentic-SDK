@@ -1,0 +1,22 @@
+{
+  "name": "openacc",
+  "version": "0.1.0",
+  "description": "Automatically insert OpenACC directives into Fortran code using verified template patterns.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "openacc", "fortran", "gpu", "porting"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenACC",
+    "shortDescription": "Insert OpenACC directives into Fortran.",
+    "longDescription": "Use verified OpenACC template patterns to parallelize Fortran scientific computing kernels for GPUs.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Developer Tools",
+    "capabilities": ["Write"],
+    "defaultPrompt": [
+      "Add OpenACC directives to this Fortran code."
+    ]
+  }
+}

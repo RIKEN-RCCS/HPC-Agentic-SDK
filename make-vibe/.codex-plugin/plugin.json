@@ -1,0 +1,23 @@
+{
+  "name": "make-vibe",
+  "version": "0.1.0",
+  "description": "Expose Makefile targets as MCP tools for building, testing, and running experiments on local or remote HPC systems.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "make", "mcp", "slurm", "remote-execution"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "make-vibe",
+    "shortDescription": "Run Makefile targets through MCP tools.",
+    "longDescription": "Use make-vibe to expose annotated Makefile targets as MCP tools for reproducible local or remote HPC build, test, and run workflows.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Set up make-vibe for this project."
+    ]
+  }
+}

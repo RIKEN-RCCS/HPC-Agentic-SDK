@@ -17,6 +17,14 @@ dependencies = [
 [project.scripts]
 hokusai-hpc-mcp = "hokusai_mcp.hpc_server:main"
 hokusai-docs-mcp = "hokusai_mcp.docs_server:main"
+hokusai-doctor = "hokusai_mcp.doctor:main"
 
 [tool.setuptools.packages.find]
 include = ["hokusai_mcp*"]
+
+[tool.setuptools.package-data]
+hokusai_mcp = [
+    "data/*.json",
+    "data/*.md",
+    "data/docs_index/*",
+]

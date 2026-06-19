@@ -18,7 +18,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
-| GET /facility | `get_facility` | ✅ | Static data from `data/ai4s_config.json` |
+| GET /facility | `get_facility` | ✅ | Static data from `server/rikyu_mcp/data/ai4s_config.json` |
 | GET /facility/sites | — | ❌ | Single-site deployment; fold into `get_facility` if ever needed |
 | GET /facility/sites/{site_id} | — | ❌ | Same |
 

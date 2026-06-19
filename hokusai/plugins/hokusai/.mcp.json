@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "hokusai-hpc": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server",
+        "hokusai-hpc-mcp"
+      ],
+      "env": {}
+    },
+    "hokusai-docs": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server",
+        "hokusai-docs-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

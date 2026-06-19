@@ -1,0 +1,104 @@
+{
+  "name": "hpc-agentic-sdk",
+  "interface": {
+    "displayName": "HPC Agentic SDK"
+  },
+  "plugins": [
+    {
+      "name": "raptor",
+      "source": {
+        "source": "local",
+        "path": "./raptor"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "tadashi",
+      "source": {
+        "source": "local",
+        "path": "./tadashi"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "make-vibe",
+      "source": {
+        "source": "local",
+        "path": "./make-vibe"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "r-ccs-cloud",
+      "source": {
+        "source": "local",
+        "path": "./r-ccs-cloud"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education & Research"
+    },
+    {
+      "name": "openacc",
+      "source": {
+        "source": "local",
+        "path": "./openacc"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "bootstrap",
+      "source": {
+        "source": "local",
+        "path": "./bootstrap"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "hokusai",
+      "source": {
+        "source": "local",
+        "path": "./hokusai/plugins/hokusai"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education & Research"
+    },
+    {
+      "name": "rikyu",
+      "source": {
+        "source": "local",
+        "path": "./rikyu/plugins/rikyu"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education & Research"
+    }
+  ]
+}

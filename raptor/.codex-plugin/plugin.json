@@ -1,0 +1,22 @@
+{
+  "name": "raptor",
+  "version": "0.1.0",
+  "description": "Guide for using RAPTOR to profile and alter floating-point precision in C, C++, and Fortran scientific code.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "precision", "floating-point", "raptor", "scientific-computing"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RAPTOR",
+    "shortDescription": "Profile and tune floating-point precision.",
+    "longDescription": "Use RAPTOR workflows for numerical precision profiling, mixed-precision analysis, and floating-point truncation in scientific C, C++, and Fortran applications.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Developer Tools",
+    "capabilities": ["Write"],
+    "defaultPrompt": [
+      "Use RAPTOR to profile this code."
+    ]
+  }
+}

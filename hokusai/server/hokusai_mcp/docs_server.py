@@ -1,7 +1,8 @@
 """MCP server for searching the HOKUSAI BigWaterfall2 (HBW2) guide.
 
-Read-only and needs no SSH access. Uses the pre-built index in data/docs_index
-(built from data/hokusai_guide.md, an original orientation guide). Search is BM25
+Read-only and needs no SSH access. Uses the pre-built packaged index in
+hokusai_mcp/data/docs_index (built from hokusai_mcp/data/hokusai_guide.md, an
+original orientation guide). Search is BM25
 keyword matching by default; if an embedding endpoint is configured and the index
 has vectors, semantic search is used instead, with fallback to keyword search.
 """

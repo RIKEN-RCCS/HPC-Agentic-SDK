@@ -43,8 +43,8 @@ built-in guide, and prefer live state for anything that changes over time.
 
 ## Keeping the guide fresh
 
-The docs index is built from `data/hokusai_guide.md` (an original guide, not the
-vendor manual). To revise it, edit that file and rebuild:
+The docs index is built from `server/hokusai_mcp/data/hokusai_guide.md` (an
+original guide, not the vendor manual). To revise it, edit that file and rebuild:
 `server/run.sh hokusai_mcp.rag.ingest` (add `--no-embed` to skip vectors). Search
 uses the shared RIKEN BGE-M3 endpoint when an API key is set and the endpoint is
 reachable, and BM25 keyword matching otherwise.

@@ -1,0 +1,23 @@
+{
+  "name": "tadashi",
+  "version": "0.1.0",
+  "description": "Check whether loop transformations are mathematically safe using Tadashi polyhedral analysis tools.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "polyhedral", "loops", "optimization", "tadashi"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Tadashi",
+    "shortDescription": "Verify loop transformation legality.",
+    "longDescription": "Use Tadashi to analyze C loop dependencies and verify transformations such as tiling, interchange, fusion, distribution, skewing, and unrolling.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Check whether this loop transform is safe."
+    ]
+  }
+}

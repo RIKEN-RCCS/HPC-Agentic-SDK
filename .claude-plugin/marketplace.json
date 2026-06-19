@@ -74,13 +74,13 @@
     {
       "name": "hokusai",
       "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN HOKUSAI BigWaterfall2 (HBW2) supercomputer",
-      "source": "./hokusai"
+      "source": "./hokusai/plugins/hokusai"
     }
     ,
     {
       "name": "rikyu",
       "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN AI4S supercomputer (NVIDIA GB200, aarch64)",
-      "source": "./rikyu"
+      "source": "./rikyu/plugins/rikyu"
     }
   ]
 }

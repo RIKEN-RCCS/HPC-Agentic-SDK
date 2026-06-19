@@ -1,12 +1,35 @@
 # HokusaiAgent
 
-Claude Code plugin for the RIKEN **HOKUSAI BigWaterfall2 (HBW2)** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
+Claude Code and Codex plugin for the RIKEN **HOKUSAI BigWaterfall2 (HBW2)** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
 
 HBW2 is a CPU-first system: the 312-node Massively Parallel Computer (MPC) and the large-memory server (LMC) do most of the work, with a small 4-node H100 GPU server for postprocessing.
 
 ## Install
 
-In Claude Code:
+### Prerequisite: uv
+
+The plugin starts its MCP servers with `uv tool run` from this repository's
+`main` branch, so `uv` must be installed and available on your PATH before
+Claude Code or Codex starts the plugin.
+
+Common install options:
+
+```bash
+brew install uv
+```
+
+or:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+After installing uv, restart Claude Code or Codex so the plugin process inherits
+the updated PATH.
+
+### Claude Code
+
+Install in Claude Code:
 
 ```
 /plugin marketplace add RIKEN-RCCS/Hokusai-Agent
@@ -14,7 +37,16 @@ In Claude Code:
 /reload-plugins
 ```
 
-Then run `/hokusai-demo` to verify the connection end-to-end.
+### Codex
+
+Install in Codex:
+
+```
+codex plugin marketplace add RIKEN-RCCS/Hokusai-Agent
+```
+
+Then open `/plugins`, install `hokusai`, start a new thread, and run
+`/hokusai-demo` to verify the connection end-to-end.
 
 ## Configuration
 

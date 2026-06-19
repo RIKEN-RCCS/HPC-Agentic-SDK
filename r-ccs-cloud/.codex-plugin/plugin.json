@@ -1,0 +1,22 @@
+{
+  "name": "r-ccs-cloud",
+  "version": "0.1.0",
+  "description": "Reference information about R-CCS cloud HPC systems, resources, modules, SLURM scripts, and login details.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "r-ccs", "cloud", "slurm", "reference"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "R-CCS Cloud",
+    "shortDescription": "Reference R-CCS cloud HPC systems.",
+    "longDescription": "Use R-CCS Cloud reference workflows for machine resources, modules, login details, and SLURM job script guidance.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Education & Research",
+    "capabilities": ["Interactive"],
+    "defaultPrompt": [
+      "Show R-CCS cloud job script guidance."
+    ]
+  }
+}

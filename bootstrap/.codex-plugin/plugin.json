@@ -1,0 +1,22 @@
+{
+  "name": "bootstrap",
+  "version": "0.1.0",
+  "description": "Set up a new HPC optimization project by selecting required skills, verifying them, and documenting workflows.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "bootstrap", "project-setup", "optimization", "workflow"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Bootstrap",
+    "shortDescription": "Set up an HPC optimization workflow.",
+    "longDescription": "Use Bootstrap before HPC optimization, porting, or tuning work to select skills, verify tools, and document project workflows.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Bootstrap this HPC optimization project."
+    ]
+  }
+}

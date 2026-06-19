@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "rikyu-hpc": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server",
+        "rikyu-hpc-mcp"
+      ],
+      "env": {}
+    },
+    "rikyu-docs": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server",
+        "rikyu-docs-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

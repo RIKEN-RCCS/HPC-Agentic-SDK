@@ -17,6 +17,13 @@ dependencies = [
 [project.scripts]
 rikyu-hpc-mcp = "rikyu_mcp.hpc_server:main"
 rikyu-docs-mcp = "rikyu_mcp.docs_server:main"
+rikyu-doctor = "rikyu_mcp.doctor:main"
 
 [tool.setuptools.packages.find]
 include = ["rikyu_mcp*"]
+
+[tool.setuptools.package-data]
+rikyu_mcp = [
+    "data/*.json",
+    "data/docs_index/*",
+]

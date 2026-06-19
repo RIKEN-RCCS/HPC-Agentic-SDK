@@ -1,0 +1,20 @@
+{
+  "name": "rikyu-marketplace",
+  "interface": {
+    "displayName": "Rikyu"
+  },
+  "plugins": [
+    {
+      "name": "rikyu",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rikyu"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

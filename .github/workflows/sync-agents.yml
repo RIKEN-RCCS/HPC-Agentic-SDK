@@ -18,16 +18,16 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/RIKEN-RCCS/Hokusai-Agent.git /tmp/hokusai-src
           rsync -a --delete \
-            --exclude='.git/' \
-            --exclude='.claude-plugin/' \
+            --exclude='/.git/' \
+            --exclude='/.claude-plugin/' \
             /tmp/hokusai-src/ hokusai/
 
       - name: Sync Rikyu-Agent
         run: |
           git clone --depth=1 https://github.com/RIKEN-RCCS/Rikyu-Agent.git /tmp/rikyu-src
           rsync -a --delete \
-            --exclude='.git/' \
-            --exclude='.claude-plugin/' \
+            --exclude='/.git/' \
+            --exclude='/.claude-plugin/' \
             /tmp/rikyu-src/ rikyu/
 
       - name: Commit and push

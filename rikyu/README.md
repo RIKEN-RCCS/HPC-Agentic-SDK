@@ -1,12 +1,35 @@
 # RikyuAgent
 
-Claude Code plugin for the RIKEN **AI4S** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
+Claude Code and Codex plugin for the RIKEN **AI4S** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
 
 AI4S is a GPU-first system: 216 NVIDIA Grace + GB200 nodes (4 GPUs each, aarch64).
 
 ## Install
 
-In Claude Code:
+### Prerequisite: uv
+
+The plugin starts its MCP servers with `uv tool run` from this repository's
+`main` branch, so `uv` must be installed and available on your PATH before
+Claude Code or Codex starts the plugin.
+
+Common install options:
+
+```bash
+brew install uv
+```
+
+or:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+After installing uv, restart Claude Code or Codex so the plugin process inherits
+the updated PATH.
+
+### Claude Code
+
+Install in Claude Code:
 
 ```
 /plugin marketplace add RIKEN-RCCS/Rikyu-Agent
@@ -14,7 +37,16 @@ In Claude Code:
 /reload-plugins
 ```
 
-Then run `/ai4s-demo` to verify the connection end-to-end.
+### Codex
+
+Install in Codex:
+
+```
+codex plugin marketplace add RIKEN-RCCS/Rikyu-Agent
+```
+
+Then open `/plugins`, install `rikyu`, start a new thread, and run `/ai4s-demo`
+to verify the connection end-to-end.
 
 ## Configuration
 

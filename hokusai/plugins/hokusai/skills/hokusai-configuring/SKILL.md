@@ -49,9 +49,9 @@ what's missing or being changed.
    API key. Never commit it or echo the key back in conversation.
 5. **Validate** with the doctor (checks config, SSH, Slurm, embedding, index):
    ```bash
-   "$CLAUDE_PLUGIN_ROOT"/server/run.sh hokusai_mcp.doctor
+   uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-doctor
    ```
-   (From a checkout of the repo: `server/run.sh hokusai_mcp.doctor`.)
+   (From a checkout of the repo: `server/run.sh hokusai_mcp.doctor` also works.)
 
 ## Notes
 
