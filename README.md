@@ -24,25 +24,6 @@ codex plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
 
 Then open `/plugins` in Codex and install the plugins you need.
 
-You can also install individual skills from this repository directly into Codex
-when you only need a skill and not the full plugin wrapper or MCP server.
-
-For a project-local install:
-
-```bash
-mkdir -p .codex/skills
-python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo RIKEN-RCCS/HPC-Agentic-SDK \
-  --path openacc/skills/openacc \
-  --dest "$PWD/.codex/skills"
-CODEX_HOME="$PWD/.codex" codex
-```
-
-Replace `openacc/skills/openacc` with the skill path you want from this repository.
-You can pass multiple `--path` values to install several skills at once.
-
-For a global install, omit `--dest` and start Codex normally.
-
 ## Plugins
 
 ### Optimization tools
