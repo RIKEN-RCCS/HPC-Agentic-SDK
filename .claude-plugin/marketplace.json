@@ -39,14 +39,9 @@
     }
     ,
     {
-      "id": "r-ccs-cloud",
-      "name": "r-ccs-cloud",
-      "description": "Reference information about R-CCS cloud HPC systems: available machines, resources, modules, SLURM scripts, and login details",
-      "source": {
-        "source": "git-subdir",
-        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
-        "path": "r-ccs-cloud"
-      }
+      "name": "rccs-cloud",
+      "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN R-CCS Cloud (heterogeneous: A64FX, x86_64, NVIDIA/AMD/Intel GPUs)",
+      "source": "./r-ccs-cloud/plugins/rccs-cloud"
     }
     ,
     {

@@ -31,9 +31,19 @@ def _format(result: dict) -> str:
 def search_docs(query: str, top_k: int = 4) -> str:
     """Search the official AI4S supercomputer documentation.
 
-    Use this before answering questions about AI4S specifics: partitions,
-    job submission, modules, scratch storage, login procedure. Returns the
-    most relevant documentation sections with their source URLs.
+    Always call this first before answering any question about AI4S specifics:
+    partitions, job submission, modules, scratch storage, login procedure, or
+    any machine-specific detail. Do not rely on prior knowledge or the
+    orientation facts embedded in skills — those are fallback aids, not
+    authoritative. The official docs are the source of truth.
+
+    If this tool errors or returns no results, fall back to the inline facts in
+    the active skill and note that docs were unavailable.
+
+    When results begin with `[search_method: bm25]`, inform the user that
+    keyword search was used because the embedding server could not be reached.
+    Results may miss semantically relevant sections that don't share exact
+    keywords with the query.
 
     Args:
         query: Natural-language question or keywords.
@@ -42,7 +52,10 @@ def search_docs(query: str, top_k: int = 4) -> str:
     results = _index().search(query, top_k=top_k)
     if not results:
         return "No matching documentation sections found."
-    return "\n\n---\n\n".join(_format(r) for r in results)
+    sections = "\n\n---\n\n".join(_format(r) for r in results)
+    if results[0]["method"] == "bm25":
+        return f"[search_method: bm25]\n\n{sections}"
+    return sections
 
 
 @mcp.tool()

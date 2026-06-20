@@ -40,7 +40,7 @@ README.md for the user-facing overview.
 - Bias to simple and maintainable. No new dependencies without a strong
   reason (current set: mcp, remotemanager, httpx, numpy). Python ≥ 3.10.
 
-## Cluster facts (verified live)
+## Cluster facts
 
 - SSH destination comes from `~/.rikyu/config.json` (`ssh.host`, default
   alias `rikyu`) → `login01.ai.r-ccs.riken.jp`. Key-based auth only — the
@@ -52,7 +52,7 @@ README.md for the user-facing overview.
   Default walltime 12h, max 96h (4n4gpu-p unlimited).
 - `$USER_SCRATCH_DIR` = node-local NVMe (~7TB), deleted when the job ends.
 
-## Embedding / semantic search
+## Documentation search (RAG)
 
 Docs search uses BGE-M3 (`bge-m3:567m`) served at
 `http://llm.ai.r-ccs.riken.jp:11434/v1` — both are hardcoded constants

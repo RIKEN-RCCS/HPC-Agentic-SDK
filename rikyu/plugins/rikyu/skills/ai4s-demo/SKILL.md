@@ -1,6 +1,7 @@
 ---
 name: ai4s-demo
-description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN AI4S supercomputer. User-invocable with /ai4s-demo.
+description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN AI4S supercomputer.
+user-invocable: true
 ---
 
 # RikyuAgent demo

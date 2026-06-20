@@ -9,7 +9,7 @@ architecture, passes `doctor.py`, and exposes the same tool surface as
 
 **The single most important idea in this guide:** a faithful port adapts the
 machine's *character* — its resource balance, its default run mode, its
-mandatory conventions — not just its strings. Two real ports exist as reference
+mandatory conventions — not just its strings. Three real ports exist as reference
 points and they are deliberately different:
 
 - **AI4S / GB200** (`Rikyu-Agent`) — a **GPU-first** cluster. Jobs are GPU jobs;
@@ -18,6 +18,11 @@ points and they are deliberately different:
 - **HOKUSAI BigWaterfall2** (`Hokusai-Agent`) — a **CPU-first** cluster. The bulk
   is 312 CPU (MPC) nodes plus a large-memory server; only 4 GPU nodes exist, for
   postprocessing. Jobs are CPU/MPI jobs by default; GPUs are an optional extra.
+- **R-CCS Cloud** (`RCCS-CloudAgent`) — a **heterogeneous research testbed**. No
+  single dominant run mode: ~20 partitions spanning CPU-only, NVIDIA, AMD, and
+  Intel GPU. The machine's character is hardware diversity and partition-specific
+  module loading. The agent's job is guiding partition choice and module setup,
+  not defaulting to one mode.
 
 HBW2 was ported *from* the GPU-first AI4S repo. The hard part was not renaming
 `rikyu`→`hokusai` — it was **flipping the defaults and emphasis** so the plugin
@@ -473,6 +478,35 @@ uv tool run --quiet --from ./server <machine>-doctor
 
 If this fails because data is missing, fix package data first. Do not paper over
 it by adding client-specific root variables.
+
+### README format
+
+`README.md` must follow the standard format used across this plugin family:
+
+1. **`# <AgentName>`** — one-liner ending exactly with `"all from the agent."`:
+   `Claude Code and Codex plugin for the RIKEN **<machine>** — submit and monitor
+   Slurm jobs, manage files on the cluster, and search the built-in documentation,
+   all from the agent.`
+
+2. **One characterization sentence** describing the machine's dominant run mode
+   (CPU-first, GPU-first, heterogeneous testbed, etc.) and what that means for
+   users. Keep it to one sentence; details belong in skills.
+
+3. **`## Install`** with three subsections:
+   - `### Prerequisite: uv` — the standard brew/curl block plus the "restart
+     Claude Code or Codex" note. Copy verbatim from an existing README.
+   - `### Claude Code` — three commands: `/plugin marketplace add <owner>/<repo>`,
+     `/plugin install <machine>@<machine>-marketplace`, `/reload-plugins`.
+   - `### Codex` — one command: `codex plugin marketplace add <owner>/<repo>`,
+     then the prose: open `/plugins`, install `<machine>`, start a new thread,
+     run `/<machine>-demo` to verify.
+
+4. **`## Configuration`** — config file path, minimal JSON, one-sentence field
+   explanation with the env var override, then the embedding key block (same
+   `RCCS_EMBED_API_KEY` / BM25 fallback prose for all machines in this family).
+
+No other top-level sections. Extra context belongs in `AGENTS.md` (developer
+guidance) or skills (workflow guidance), not the README.
 
 ---
 

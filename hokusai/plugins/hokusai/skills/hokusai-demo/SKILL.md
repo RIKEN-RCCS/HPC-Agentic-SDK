@@ -1,6 +1,7 @@
 ---
 name: hokusai-demo
-description: Interactive demo of HokusaiAgent — walks through facility info, live cluster status, docs search, filesystem access, and CPU job submission on HOKUSAI BigWaterfall2 (HBW2). User-invocable with /hokusai-demo.
+description: Interactive demo of HokusaiAgent — walks through facility info, live cluster status, docs search, filesystem access, and CPU job submission on HOKUSAI BigWaterfall2 (HBW2).
+user-invocable: true
 ---
 
 # HokusaiAgent demo

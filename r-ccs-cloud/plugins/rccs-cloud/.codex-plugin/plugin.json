@@ -1,0 +1,26 @@
+{
+  "name": "rccs-cloud",
+  "version": "0.1.0",
+  "description": "Interact with the RIKEN R-CCS Cloud: submit and monitor Slurm jobs across heterogeneous hardware (CPU, NVIDIA/AMD/Intel GPU), manage files on the cluster, and search the built-in R-CCS Cloud documentation.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/RCCS-CloudAgent",
+  "keywords": ["hpc", "slurm", "riken", "r-ccs", "cloud", "supercomputer", "gpu"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "RCCS Cloud",
+    "shortDescription": "Submit and monitor R-CCS Cloud Slurm jobs and search R-CCS Cloud docs.",
+    "longDescription": "Interact with the RIKEN R-CCS Cloud from Codex: submit and monitor Slurm jobs on heterogeneous hardware (A64FX, x86_64, NVIDIA/AMD/Intel GPU), manage files on the cluster, and search the built-in documentation guide.",
+    "developerName": "RIKEN R-CCS",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Show R-CCS Cloud cluster status.",
+      "Submit a test CPU job on genoa.",
+      "What partitions are available and what modules do they need?"
+    ]
+  }
+}

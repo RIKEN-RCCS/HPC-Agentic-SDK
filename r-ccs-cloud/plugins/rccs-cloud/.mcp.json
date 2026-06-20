@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "rccs-cloud-hpc": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/RCCS-CloudAgent.git@main#subdirectory=server",
+        "rccs-cloud-hpc-mcp"
+      ],
+      "env": {}
+    },
+    "rccs-cloud-docs": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/RCCS-CloudAgent.git@main#subdirectory=server",
+        "rccs-cloud-docs-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

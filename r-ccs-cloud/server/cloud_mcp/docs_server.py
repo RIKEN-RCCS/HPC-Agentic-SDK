@@ -1,20 +1,20 @@
-"""MCP server for searching the HOKUSAI BigWaterfall2 (HBW2) guide.
+"""MCP server for searching the R-CCS Cloud documentation guide.
 
 Read-only and needs no SSH access. Uses the pre-built packaged index in
-hokusai_mcp/data/docs_index (built from hokusai_mcp/data/hokusai_guide.md, an
-original orientation guide). Search is BM25
-keyword matching by default; if an embedding endpoint is configured and the index
-has vectors, semantic search is used instead, with fallback to keyword search.
+cloud_mcp/data/docs_index (built from cloud_mcp/data/cloud_guide.md, an
+original guide to the R-CCS Cloud). Search is BM25 keyword matching by
+default; if an embedding endpoint is configured and the index has vectors,
+semantic search is used instead, with fallback to keyword search.
 """
 from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP
 
-from hokusai_mcp import config
-from hokusai_mcp.rag.store import DocsIndex
-from hokusai_mcp.serving import serve
+from cloud_mcp import config
+from cloud_mcp.rag.store import DocsIndex
+from cloud_mcp.serving import serve
 
-mcp = FastMCP("hokusai-docs")
+mcp = FastMCP("rccs-cloud-docs")
 
 
 @lru_cache(maxsize=1)
@@ -30,13 +30,13 @@ def _format(result: dict) -> str:
 
 @mcp.tool()
 def search_docs(query: str, top_k: int = 4) -> str:
-    """Search the HOKUSAI BigWaterfall2 (HBW2) documentation guide.
+    """Search the R-CCS Cloud documentation guide.
 
-    Always call this first before answering any question about HBW2 specifics:
-    partitions, job submission, projects/accounts, storage, login procedure,
-    module names, or any machine-specific detail. Do not rely on prior knowledge
-    or the orientation facts embedded in skills — those are fallback aids, not
-    authoritative. The guide is the source of truth.
+    Always call this first before answering any question about R-CCS Cloud
+    specifics: partitions, module loading, job submission, hardware details,
+    storage, login procedure, or any machine-specific detail. Do not rely on
+    prior knowledge or the orientation facts embedded in skills — those are
+    fallback aids, not authoritative. The guide is the source of truth.
 
     If this tool errors or returns no results, fall back to the inline facts in
     the active skill and note that docs were unavailable.
@@ -61,7 +61,7 @@ def search_docs(query: str, top_k: int = 4) -> str:
 
 @mcp.tool()
 def list_doc_sections() -> str:
-    """List every section of the HBW2 guide (table of contents)."""
+    """List every section of the R-CCS Cloud guide (table of contents)."""
     lines = [f"- {c['breadcrumb']}  ({c['url']})" for c in _index().chunks]
     return "\n".join(lines)
 
@@ -72,7 +72,7 @@ def read_doc_section(breadcrumb: str) -> str:
 
     Args:
         breadcrumb: Section path as shown by list_doc_sections or search_docs,
-            e.g. 'Welcome > Usage > Submit a batch job'. Partial matches work.
+            e.g. 'R-CCS Cloud > Module Loading'. Partial matches work.
     """
     needle = breadcrumb.lower()
     matches = [c for c in _index().chunks if needle in c["breadcrumb"].lower()]

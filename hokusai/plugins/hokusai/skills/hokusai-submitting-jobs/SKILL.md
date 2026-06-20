@@ -10,6 +10,13 @@ HBW2 is a CPU-first system. Most work runs on the Massively Parallel Computer
 
 ## Workflow
 
+0. **Search docs first** — `search_docs` (hokusai-docs) with the user's
+   question or the specific resource detail you need (partition limits, module
+   names, account format, wall-time rules). Do not skip this or rely solely on
+   the inline facts below — they are orientation aids, not the authoritative
+   source. If `search_docs` is unavailable or returns nothing useful, continue
+   with the inline facts and note that docs were unavailable.
+
 1. **Pick the partition** — `get_facility` has the full table. Rules of thumb:
    - General CPU work (≤24h) → `mpc` (default; up to 64 nodes, 112 cores/node, 112 GiB).
    - Longer CPU work (≤72h, ≤8 nodes) → `mpc_l`.

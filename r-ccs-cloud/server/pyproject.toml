@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rccs-cloud-mcp"
+version = "0.1.0"
+description = "MCP servers for the RIKEN R-CCS Cloud: Slurm interaction and documentation search."
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "remotemanager",
+    "httpx",
+    "numpy",
+]
+
+[project.scripts]
+rccs-cloud-hpc-mcp  = "cloud_mcp.hpc_server:main"
+rccs-cloud-docs-mcp = "cloud_mcp.docs_server:main"
+rccs-cloud-doctor   = "cloud_mcp.doctor:main"
+
+[tool.setuptools.packages.find]
+include = ["cloud_mcp*"]
+
+[tool.setuptools.package-data]
+cloud_mcp = [
+    "data/*.json",
+    "data/*.md",
+    "data/docs_index/*",
+]
