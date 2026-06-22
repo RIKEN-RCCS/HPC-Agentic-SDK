@@ -7,13 +7,6 @@ description: Use when the user wants to run, submit, or launch a job (training, 
 
 ## Workflow
 
-0. **Search docs first** — `search_docs` (rikyu-docs) with the user's question
-   or the specific resource detail you need (partition limits, module names,
-   scratch path, wall-time rules). Do not skip this or rely solely on the
-   inline facts below — they are orientation aids, not the authoritative source.
-   If `search_docs` is unavailable or returns nothing useful, continue with the
-   inline facts and note that docs were unavailable.
-
 1. **Pick the partition first** — on AI4S the partition fixes the resource share per node. Use `get_facility` for the table. Rules of thumb:
    - 1 GPU → `1n1gpu` (36 CPUs, 400GB), 2 GPUs → `1n2gpu`, full node → `1n4gpu`
    - Multi-node → `2n4gpu` or `4n4gpu` (always 4 GPUs/node)

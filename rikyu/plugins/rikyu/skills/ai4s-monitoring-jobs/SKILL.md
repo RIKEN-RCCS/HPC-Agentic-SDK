@@ -5,11 +5,6 @@ description: Use when the user asks about the status, progress, output, history,
 
 # Monitoring jobs on the AI4S supercomputer
 
-If the user asks about scheduler policies, partition limits, or storage paths
-(rather than a specific live job), call `search_docs` (rikyu-docs) first.
-If `search_docs` is unavailable or returns nothing useful, use the inline facts
-below and note that docs were unavailable.
-
 ## Status checks
 
 - **One job**: `get_job_status` — `state` is normalized (QUEUED/ACTIVE/COMPLETED/FAILED/CANCELED); `native_state` is Slurm's. A QUEUED job's `reason` field says why it waits (`Resources`, `Priority`, …).
