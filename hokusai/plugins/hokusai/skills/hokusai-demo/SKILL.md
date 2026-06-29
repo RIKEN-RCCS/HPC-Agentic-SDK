@@ -39,7 +39,9 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 ## Step 3 — Documentation search
 
-Call `search_docs` with a practical question a new user would actually ask, e.g. *"how do I submit an MPI batch job?"* or *"what compilers are available?"*.
+Call `search_docs` with *"what is the core-time budget system and how is usage tracked per project?"*
+
+This surfaces something genuinely HBW2-specific: the per-project core-time accounting that controls whether jobs can submit at all — not something you can guess from generic HPC knowledge.
 
 Show the top result: the breadcrumb, a short excerpt, and the source. Note whether the result came from vector search or BM25 keyword matching (the `method` field). If `vector`, say: *"Semantic search is active — results are ranked by meaning via the shared RIKEN BGE-M3 endpoint."* If `bm25`, say: *"Running on BM25 keyword search (no embedding API key set, or off the RIKEN network) — still works fully offline."*
 

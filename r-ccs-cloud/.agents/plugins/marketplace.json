@@ -1,0 +1,20 @@
+{
+  "name": "rccs-cloud-marketplace",
+  "interface": {
+    "displayName": "RCCS Cloud"
+  },
+  "plugins": [
+    {
+      "name": "rccs-cloud",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rccs-cloud"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

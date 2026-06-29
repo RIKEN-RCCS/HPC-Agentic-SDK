@@ -37,7 +37,9 @@ Point out which partitions have idle capacity right now — those are where a jo
 
 ## Step 3 — Documentation search
 
-Call `search_docs` with a question a new user would ask, e.g. *"what modules do I need to load for the genoa partition?"* or *"how do I request GPUs?"*
+Call `search_docs` with *"what makes the A64FX partition different from x86 nodes, and what should I know before running code there?"*
+
+This surfaces something genuinely R-CCS Cloud-specific: the A64FX is a fundamentally different architecture (Arm SVE, HBM2, no AVX) and code that runs fine on genoa will silently produce wrong results or crash there without the right build flags.
 
 Show the top result: the breadcrumb, a short excerpt, and the URL. Note whether results came from vector search or BM25 keyword fallback (the `method` field).
 

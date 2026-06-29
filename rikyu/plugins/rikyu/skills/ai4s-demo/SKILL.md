@@ -39,7 +39,9 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 ## Step 3 — Documentation search
 
-Call `search_docs` with a practical question a new user would actually ask, e.g. *"how do I submit a batch job?"* or *"what storage is available?"*.
+Call `search_docs` with *"how does the Grace Hopper architecture split memory between CPU and GPU, and what does that mean for data placement?"*
+
+This surfaces something genuinely GB200-specific: the NVLink-C2C unified memory model is unlike any x86+discrete-GPU cluster, and getting data placement wrong is the most common performance mistake on AI4S.
 
 Show the top result: the breadcrumb, a short excerpt, and the URL. Then note whether the result came from vector search or BM25 keyword fallback (the `method` field) — if vector, say: *"Semantic search is active — results are ranked by meaning, not just keyword matches."*
 
