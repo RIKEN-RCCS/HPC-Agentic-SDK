@@ -1,6 +1,6 @@
 ---
-name: ai4s-configuring
-description: Use when the user wants to set up, configure, or troubleshoot RikyuAgent — SSH access to the AI4S cluster, the embedding endpoint for docs search (RAG), or the ~/.rikyu/config.json file. Also use when rikyu tools fail with connection or embedding errors.
+name: rikyu-configuring
+description: Use when the user wants to set up, configure, or troubleshoot RikyuAgent — SSH access to the Rikyu cluster, the embedding endpoint for docs search (RAG), or the ~/.rikyu/config.json file. Also use when rikyu tools fail with connection or embedding errors.
 ---
 
 # Configuring RikyuAgent
@@ -21,7 +21,7 @@ shared `RCCS_EMBED_API_KEY` — see below):
 Read the existing `~/.rikyu/config.json` first (if any) and only ask about
 what's missing or being changed.
 
-1. **SSH** — ask how they reach the AI4S login node:
+1. **SSH** — ask how they reach the Rikyu login node:
    - An alias in `~/.ssh/config` (recommended) → `"host": "<alias>"`.
    - Otherwise username + hostname → `"host": "user@login01.ai.r-ccs.riken.jp"`,
      and offer to add a proper alias block to `~/.ssh/config` instead.

@@ -39,7 +39,7 @@ def _file_config() -> dict:
 
 
 def ssh_host() -> str:
-    """SSH destination for the AI4S login node (alias or user@hostname)."""
+    """SSH destination for the Rikyu login node (alias or user@hostname)."""
     return (os.environ.get("RIKYU_HOST")
             or _file_config().get("ssh", {}).get("host")
             or "rikyu")
@@ -85,7 +85,7 @@ DOCS_SITE_BASE = "https://riken-rccs.github.io/ai4s_early_access/en/"
 
 @lru_cache(maxsize=1)
 def load_cluster_config() -> dict:
-    """Load the static AI4S cluster description (partitions, modules, storage)."""
-    path = Path(os.environ.get("RIKYU_CLUSTER_CONFIG", _DATA_DIR / "ai4s_config.json"))
+    """Load the static Rikyu cluster description (partitions, modules, storage)."""
+    path = Path(os.environ.get("RIKYU_CLUSTER_CONFIG", _DATA_DIR / "rikyu_config.json"))
     with open(path) as f:
         return json.load(f)

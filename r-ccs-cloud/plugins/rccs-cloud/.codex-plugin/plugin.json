@@ -1,6 +1,6 @@
 {
   "name": "rccs-cloud",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Interact with the RIKEN R-CCS Cloud: submit and monitor Slurm jobs across heterogeneous hardware (CPU, NVIDIA/AMD/Intel GPU), manage files on the cluster, and search the built-in R-CCS Cloud documentation.",
   "author": {
     "name": "William Dawson",

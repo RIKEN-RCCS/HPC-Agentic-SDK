@@ -1,6 +1,6 @@
 ---
-name: ai4s-demo
-description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN AI4S supercomputer.
+name: rikyu-demo
+description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN Rikyu supercomputer.
 user-invocable: true
 ---
 
@@ -17,7 +17,7 @@ Call `get_facility`. Present the key facts as a short table:
 - Partitions: name → GPUs/node, CPUs/node, max wall time (one row per partition)
 - Storage tiers (home, scratch, any project storage)
 
-Lead with one sentence: **"The AI4S supercomputer at RIKEN is an NVIDIA GB200 cluster running <N> nodes."**
+Lead with one sentence: **"The Rikyu supercomputer at RIKEN is an NVIDIA GB200 cluster running <N> nodes."**
 
 ---
 
@@ -41,7 +41,7 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 Call `search_docs` with *"how does the Grace Hopper architecture split memory between CPU and GPU, and what does that mean for data placement?"*
 
-This surfaces something genuinely GB200-specific: the NVLink-C2C unified memory model is unlike any x86+discrete-GPU cluster, and getting data placement wrong is the most common performance mistake on AI4S.
+This surfaces something genuinely GB200-specific: the NVLink-C2C unified memory model is unlike any x86+discrete-GPU cluster, and getting data placement wrong is the most common performance mistake on Rikyu.
 
 Show the top result: the breadcrumb, a short excerpt, and the URL. Then note whether the result came from vector search or BM25 keyword fallback (the `method` field) — if vector, say: *"Semantic search is active — results are ranked by meaning, not just keyword matches."*
 
@@ -134,4 +134,4 @@ Summarize what just happened in 5 bullet points:
 - Bare-metal job submitted, ran, GPU output retrieved
 - Container job ran inside Ubuntu on the same GB200 hardware
 
-Then say: *"From here you can submit real workloads with /ai4s-submitting-jobs, monitor them with /ai4s-monitoring-jobs, or ask anything about the cluster."*
+Then say: *"From here you can submit real workloads with /rikyu-submitting-jobs, monitor them with /rikyu-monitoring-jobs, or ask anything about the cluster."*

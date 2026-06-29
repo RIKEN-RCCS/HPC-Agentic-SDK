@@ -49,10 +49,10 @@ def map_slurm_state(native: str) -> JobState:
 
 
 class ResourceSpec(BaseModel):
-    """Resources for a job (PSI/J ResourceSpec + AI4S extensions).
+    """Resources for a job (PSI/J ResourceSpec + Rikyu extensions).
 
-    On AI4S the partition (JobAttributes.queue_name) fixes the per-node
-    resource share. gpus_per_node is an AI4S-specific extension that maps to
+    On Rikyu the partition (JobAttributes.queue_name) fixes the per-node
+    resource share. gpus_per_node is a Rikyu-specific extension that maps to
     --gpus-per-node; gpu_cores_per_process is the PSI/J standard equivalent.
     If both are set, gpus_per_node takes precedence.
     """
@@ -60,8 +60,8 @@ class ResourceSpec(BaseModel):
     process_count: int | None = Field(None, description="Total processes (alternative to processes_per_node × node_count)")
     processes_per_node: int = 1
     cpu_cores_per_process: int | None = None
-    gpu_cores_per_process: int | None = Field(None, description="PSI/J standard GPU field; prefer gpus_per_node on AI4S")
-    gpus_per_node: int = Field(1, description="AI4S extension: maps to --gpus-per-node")
+    gpu_cores_per_process: int | None = Field(None, description="PSI/J standard GPU field; prefer gpus_per_node on Rikyu")
+    gpus_per_node: int = Field(1, description="Rikyu extension: maps to --gpus-per-node")
     exclusive_node_use: bool = Field(False, description="Request exclusive node allocation (--exclusive)")
     memory: int | None = Field(None, description="Memory per node in bytes (maps to --mem)")
 
@@ -94,10 +94,10 @@ class VolumeMount(BaseModel):
 
 
 class Container(BaseModel):
-    """Container specification (IRI Container); executed via singularity exec on AI4S.
+    """Container specification (IRI Container); executed via singularity exec on Rikyu.
 
     image must be a path to a .sif file (absolute or using $HOME). Docker URIs
-    and pyxis/enroot are NOT used: pyxis is installed on AI4S but broken
+    and pyxis/enroot are NOT used: pyxis is installed on Rikyu but broken
     (/run/user/<uid> missing on compute nodes as of 2026-06).
     GPU passthrough (--nv) is added automatically when the job requests GPUs.
     launcher (e.g. 'srun') is placed outside singularity exec so MPI works.

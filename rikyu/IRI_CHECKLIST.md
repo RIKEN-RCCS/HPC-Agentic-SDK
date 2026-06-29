@@ -3,10 +3,10 @@
 Tracks how far `rikyu-hpc` covers the [IRI Facility API](https://api.alcf.anl.gov/)
 (ALCF implementation, spec at api.alcf.anl.gov/openapi.json — not committed; fetch
 it when needed, see AGENTS.md). Each IRI endpoint maps to an MCP
-tool executed on AI4S over SSH via remotemanager — there is no REST service;
+tool executed on Rikyu over SSH via remotemanager — there is no REST service;
 we emulate the API's shape and semantics.
 
-**The verdicts below are specific to AI4S.** When porting to a new machine,
+**The verdicts below are specific to Rikyu.** When porting to a new machine,
 re-decide every row against what *that* machine can do — the same endpoint can be
 implementable on one machine and not another (e.g. the `project_allocations`
 endpoints are deferred here, but implementable on a machine with core-time
@@ -18,7 +18,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
-| GET /facility | `get_facility` | ✅ | Static data from `server/rikyu_mcp/data/ai4s_config.json` |
+| GET /facility | `get_facility` | ✅ | Static data from `server/rikyu_mcp/data/rikyu_config.json` |
 | GET /facility/sites | — | ❌ | Single-site deployment; fold into `get_facility` if ever needed |
 | GET /facility/sites/{site_id} | — | ❌ | Same |
 
@@ -26,9 +26,9 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
-| GET /status/resources | `get_resources` | ✅ | One resource (`ai4s`) with per-partition node summary from sinfo |
+| GET /status/resources | `get_resources` | ✅ | One resource (`rikyu`) with per-partition node summary from sinfo |
 | GET /status/resources/{resource_id} | `get_resource` | ✅ | Per-partition node counts + drained nodes with reasons (`sinfo -R`) |
-| GET /status/incidents | — | ❌ | No incident data source on AI4S; closest signal is drained nodes / maintenance reservations (`scontrol show reservation`) |
+| GET /status/incidents | — | ❌ | No incident data source on Rikyu; closest signal is drained nodes / maintenance reservations (`scontrol show reservation`) |
 | GET /status/incidents/{id} | — | ❌ | Same |
 | GET /status/events | — | ❌ | Same |
 | GET /status/events/{id} | — | ❌ | Same |
@@ -37,11 +37,11 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
-| GET /account/capabilities | — | ❌ | No equivalent concept exposed on AI4S |
+| GET /account/capabilities | — | ❌ | No equivalent concept exposed on Rikyu |
 | GET /account/capabilities/{id} | — | ❌ | Same |
 | GET /account/projects | `get_projects` | ✅ | `sacctmgr show associations user=$USER` |
 | GET /account/projects/{id} | `get_project` | ✅ | Filter over `get_projects` |
-| GET .../project_allocations | — | ❌ | AI4S early access has no allocation accounting yet |
+| GET .../project_allocations | — | ❌ | Rikyu early access has no allocation accounting yet |
 | GET .../project_allocations/{id} | — | ❌ | Same |
 | GET .../user_allocations | — | ❌ | Same |
 | GET .../user_allocations/{id} | — | ❌ | Same |
@@ -109,8 +109,8 @@ Verified against the ALCF IRI spec (fetched 2026-06-12 from api.alcf.anl.gov/ope
 | `processes_per_node` | present | present ✅ | — |
 | `process_count` | present (total processes) | absent | 🔜 Add; alternative to `processes_per_node × node_count` |
 | `cpu_cores_per_process` | present | present ✅ | — |
-| `gpu_cores_per_process` | present (PSI/J standard) | absent | 🔜 Add as alias/fallback; AI4S uses `gpus_per_node` |
-| `gpus_per_node` | absent (AI4S extension) | present | Keep — maps to `--gpus-per-node`; document as extension |
+| `gpu_cores_per_process` | present (PSI/J standard) | absent | 🔜 Add as alias/fallback; Rikyu uses `gpus_per_node` |
+| `gpus_per_node` | absent (Rikyu extension) | present | Keep — maps to `--gpus-per-node`; document as extension |
 | `exclusive_node_use` | present | absent | 🔜 Add; maps to `--exclusive` |
 | `memory` | present (bytes) | absent | 🔜 Add; maps to `--mem` (convert bytes → MB for sbatch) |
 
@@ -132,7 +132,7 @@ Verified against the ALCF IRI spec (fetched 2026-06-12 from api.alcf.anl.gov/ope
 | `pre_launch` | present (script before job) | absent | 🔜 Add; prepend to sbatch script body |
 | `post_launch` | present (script after job) | absent | 🔜 Add; append to sbatch script body |
 | `launcher` | present (e.g. `srun`, `mpirun`) | absent | 🔜 Add; prepend to `executable` in script |
-| `container` | present (Container: image + mounts) | present ✅ | Singularity 4.3.7 on AI4S; `--nv` added when GPUs requested; launcher placed outside singularity exec |
+| `container` | present (Container: image + mounts) | present ✅ | Singularity 4.3.7 on Rikyu; `--nv` added when GPUs requested; launcher placed outside singularity exec |
 
 ### JobState
 
@@ -161,4 +161,4 @@ This is an intentional deviation. Document it clearly to callers.
 
 ### resource_id
 
-Accepted and validated in all compute/filesystem tools but there is a single resource: `ai4s`.
+Accepted and validated in all compute/filesystem tools but there is a single resource: `rikyu`.

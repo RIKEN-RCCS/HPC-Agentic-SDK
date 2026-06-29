@@ -1,4 +1,4 @@
-"""Build the documentation index from the AI4S docs source repository.
+"""Build the documentation index from the Rikyu docs source repository.
 
 Chunks the English markdown by heading, attaches the published site URL with
 the section anchor, and (when the embedding endpoint is configured) computes

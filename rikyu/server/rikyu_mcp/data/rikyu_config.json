@@ -1,5 +1,5 @@
 {
-  "cluster": "ai4s_cluster",
+  "cluster": "rikyu_cluster",
   "login_host": "login01.ai.r-ccs.riken.jp",
   "architecture": "aarch64 (NVIDIA Grace)",
   "gpu_type": "NVIDIA GB200",

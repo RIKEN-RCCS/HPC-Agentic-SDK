@@ -3,7 +3,7 @@
 Built on remotemanager's Computer.cmd (a direct SSH exec, ~0.6s per call).
 Three conventions are enforced in one place:
 
-- Commands run under a login shell (Slurm on AI4S resolves its configuration
+- Commands run under a login shell (Slurm on Rikyu resolves its configuration
   through the login environment; a bare non-login shell cannot find it).
 - The working directory is the user's home, so relative paths behave the way
   users expect.
@@ -47,7 +47,7 @@ OUTPUT_LIMIT_BYTES = 200_000
 
 @lru_cache(maxsize=1)
 def get_frontend() -> Computer:
-    """The (cached) Computer targeting the AI4S login node."""
+    """The (cached) Computer targeting the Rikyu login node."""
     return Computer(
         template="#!/bin/bash -l",
         host=config.ssh_host(),
@@ -75,7 +75,7 @@ def run_command(cmd: str) -> str:
         except Exception as exc:
             if not config.CONFIG_PATH.exists():
                 raise RuntimeError(
-                    "Plugin not configured — run the 'ai4s-configuring' skill to "
+                    "Plugin not configured — run the 'rikyu-configuring' skill to "
                     f"create {config.CONFIG_PATH}."
                 ) from exc
             raise
@@ -83,7 +83,7 @@ def run_command(cmd: str) -> str:
         detail = (result.stderr or result.stdout or "").strip()
         if not config.CONFIG_PATH.exists():
             raise RuntimeError(
-                "Plugin not configured — run the 'ai4s-configuring' skill to "
+                "Plugin not configured — run the 'rikyu-configuring' skill to "
                 f"create {config.CONFIG_PATH}."
                 + (f" SSH error: {detail}" if detail else "")
             )

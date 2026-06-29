@@ -12,7 +12,7 @@ machine's *character* — its resource balance, its default run mode, its
 mandatory conventions — not just its strings. Three real ports exist as reference
 points and they are deliberately different:
 
-- **AI4S / GB200** (`Rikyu-Agent`, this repo) — a **GPU-first** cluster. Jobs are
+- **Rikyu / GB200** (`Rikyu-Agent`, this repo) — a **GPU-first** cluster. Jobs are
   GPU jobs; the partition fixes the per-node GPU share; the default ResourceSpec
   requests a GPU.
 - **HOKUSAI BigWaterfall2** (`Hokusai-Agent`) — a **CPU-first** cluster. The bulk
@@ -88,7 +88,7 @@ machine facts as package data.
 - `config.py` — `ssh_host()` default, the embedding `EMBED_BASE_URL`/`EMBED_MODEL`
   constants (+ `embed_api_key()`), and the doc source (`DOCS_REPO_URL` /
   `DOCS_SITE_BASE` here; could be a PDF path elsewhere). Add a `default_account()`
-  if the target scheduler requires a project/account (AI4S does not; HBW2 does).
+  if the target scheduler requires a project/account (Rikyu does not; HBW2 does).
 - `models.py` **defaults** — `ResourceSpec` field defaults, `JobAttributes`
   `queue_name`/`duration` defaults. These encode "what a typical job looks like"
   and must match the machine's dominant usage (Phase 3).
@@ -101,7 +101,7 @@ machine facts as package data.
   The IRI-grouped structure and tool names must be preserved; only the
   shell commands inside them change.
 - `rag/ingest.py` — doc-source-specific (chunking logic); see Phase 5.
-- `server/rikyu_mcp/data/ai4s_config.json` — replace with the new machine's static facts.
+- `server/rikyu_mcp/data/rikyu_config.json` — replace with the new machine's static facts.
 - `server/rikyu_mcp/data/docs_index/` — rebuild from the new machine's documentation.
 - `plugins/<machine>/skills/` — replace SKILL.md content with machine-specific workflows.
 - `IRI_CHECKLIST.md` — update to track coverage for the new machine.
@@ -173,7 +173,7 @@ an opinion on:
 
 - **Resource balance.** What is the bulk of the system? Count the nodes. Is it a
   GPU farm with a few login/CPU nodes, a CPU MPP with a handful of GPU nodes for
-  postprocessing, a large-memory shop? (AI4S: GPU-first. HBW2: 312 CPU nodes vs
+  postprocessing, a large-memory shop? (Rikyu: GPU-first. HBW2: 312 CPU nodes vs
   4 GPU nodes → CPU-first.) The headline hardware in the docs is your tell.
 - **Default run mode.** How does a *typical* job run? Pure MPI? MPI+OpenMP
   hybrid? Single-GPU training? Multi-GPU? Large-memory serial? Interactive? The
@@ -258,7 +258,7 @@ ls -la $HOME                     # home layout
 ```
 
 **Container runtime:** if the docs mention a container runtime, probe it on a
-compute node before committing to it in `compute.py`. On AI4S, pyxis/enroot was
+compute node before committing to it in `compute.py`. On Rikyu, pyxis/enroot was
 documented as available but broken in practice (`/run/user/<uid>` absent on
 compute nodes) — `singularity exec` worked. HBW2 uses Singularity too. Trust
 running experiments over documentation here.
@@ -270,13 +270,13 @@ running experiments over documentation here.
 **`config.py`:**
 - Change `ssh_host()` default to the new machine's SSH alias/hostname.
 - Add `default_account()` if the scheduler requires a project/account, so jobs
-  that omit one still submit (the value comes from config / env). AI4S doesn't
+  that omit one still submit (the value comes from config / env). Rikyu doesn't
   require this; HBW2 does.
 - Set `EMBED_BASE_URL`/`EMBED_MODEL` to the embedding endpoint + model. These are
   hardcoded constants — only `embed_api_key()` is user-configurable, because the
   committed `embeddings.npy` is tied to the model. The embedding endpoint is
   often **shared infrastructure** reusable across machines at the same site
-  (AI4S and HBW2 use the same RIKEN BGE-M3 endpoint); don't assume it's
+  (Rikyu and HBW2 use the same RIKEN BGE-M3 endpoint); don't assume it's
   machine-specific. Without a key or endpoint, search degrades to BM25.
 - Keep `DOCS_INDEX_DIR` and the static cluster config under
   `server/<package>/data/` and load them as package data. Environment overrides
@@ -297,7 +297,7 @@ This is where the machine's character lives.
 Only deviate from the shapes if the target scheduler has a concept that genuinely
 cannot be mapped (e.g. PBS's `-l nodes=1:ppn=4` has no direct IRI analogue), and
 document deviations in `IRI_CHECKLIST.md`. The GPU field is a per-site extension
-(`gpus_per_node` → `--gpus-per-node` on AI4S; `gpus` → `--gpus` on HBW2); name it
+(`gpus_per_node` → `--gpus-per-node` on Rikyu; `gpus` → `--gpus` on HBW2); name it
 for the flag the machine actually uses.
 
 `map_slurm_state()` must be replaced with `map_<scheduler>_state()` if not Slurm.
@@ -324,10 +324,10 @@ Notes from the existing ports:
   `--gres=gpu:<type>:N`), and only when GPUs are actually requested.
 - **Required account** — if the target mandates a project, inject
   `config.default_account()` in `render_script` when `attributes.account` is
-  unset, so jobs still submit (AI4S doesn't need this; HBW2 does).
+  unset, so jobs still submit (Rikyu doesn't need this; HBW2 does).
 - Scripts are written under `~/.rikyu/jobs/<name>-<timestamp>.sh` via
   `write_remote_file` for auditability.
-- **Containers** — prefer whatever mechanism works reliably. On AI4S,
+- **Containers** — prefer whatever mechanism works reliably. On Rikyu,
   `singularity exec` was chosen over pyxis/enroot because `/run/user/<uid>` is
   absent on compute nodes. Probe before assuming.
 
@@ -348,7 +348,7 @@ copies the source's coverage will both miss endpoints the new machine *can*
 support and carry tools the new machine doesn't need. Walk every IRI endpoint and
 re-decide it against *this* machine's capabilities (the ones you noted in Phase 1):
 
-- **defer → implement.** AI4S defers `.../project_allocations` and
+- **defer → implement.** Rikyu defers `.../project_allocations` and
   `user_allocations` ("no allocation accounting"). HBW2 exposes per-project
   core-time budgets via `listcpu -p <project>`, so on HBW2 those endpoints are
   implementable — *same endpoint, opposite verdict.*
@@ -370,7 +370,7 @@ difference in the note so the decision is auditable.
 
 The retrieval pipeline is generic; only **`ingest.py` is doc-source-specific**.
 `ingest.py` must produce a list of `{breadcrumb, url, text}` chunks from whatever
-the source is. AI4S's source is a public, openly-licensed **mkdocs repo**, so it
+the source is. Rikyu's source is a public, openly-licensed **mkdocs repo**, so it
 clones and chunks the markdown:
 
 ```bash
@@ -389,7 +389,7 @@ both see the context. Each chunk's searchable text is defined by
 
 ### Write the guide, don't copy a copyrighted one
 
-AI4S is the easy case: its docs are openly licensed, so ingesting them directly is
+Rikyu is the easy case: its docs are openly licensed, so ingesting them directly is
 fine. **That is not always true.** Vendor user guides are often copyrighted —
 committing their text (or an extracted/chunked copy of it) into a distributable
 repo is reproduction. Facts are not copyrightable, so when the only source is a
@@ -426,7 +426,7 @@ tools for a specific workflow. Port these:
 | `configuring` | first-time setup, SSH config, account, config.json |
 | `submitting-jobs` | building a JobSpec, common patterns, container jobs |
 | `monitoring-jobs` | polling, reading output, diagnosing failures |
-| `ai4s-reference` | machine-specific quick reference (rename as needed) |
+| `<machine>-reference` | machine-specific quick reference (rename as needed) |
 | `demo` | end-to-end walkthrough, incl. a *typical* test job |
 
 Do more than swap partition names and storage paths: **re-frame each skill around

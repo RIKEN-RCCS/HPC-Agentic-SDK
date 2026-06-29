@@ -1,6 +1,6 @@
 # RikyuAgent — agent instructions
 
-Claude Code and Codex plugin for the RIKEN AI4S supercomputer: two MCP servers
+Claude Code and Codex plugin for the RIKEN Rikyu supercomputer: two MCP servers
 (`rikyu-hpc` for Slurm, `rikyu-docs` for documentation RAG) plus skills. See
 README.md for the user-facing overview.
 
@@ -19,7 +19,7 @@ README.md for the user-facing overview.
 - **All cluster interaction goes through `server/rikyu_mcp/middleware.py`**
   (`run_command` / `write_remote_file`). Never shell out to ssh directly from
   tool code. Middleware enforces three conventions in one place: commands run
-  under a **login shell** (Slurm on AI4S is invisible to non-login shells),
+  under a **login shell** (Slurm on Rikyu is invisible to non-login shells),
   the working directory is **$HOME** (relative paths resolve there), and
   payloads travel **base64-encoded** (quote-proof). Output is capped at 200KB.
 - **Never write to stdout in server code** — the MCP stdio transport uses it
@@ -95,7 +95,7 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
   `uv tool run --quiet --from ./server rikyu-doctor`. The marketplace runtime
   uses the same package boundary, but from GitHub `main`.
 - User settings live in `~/.rikyu/config.json` (may contain an embedding API
-  key — never commit it, never echo the key). The `ai4s-configuring` skill
+  key — never commit it, never echo the key). The `rikyu-configuring` skill
   documents the schema.
 - The docs RAG indexes https://github.com/RIKEN-RCCS/ai4s_early_access
   (markdown source of the official guide). The embedding endpoint is any
@@ -111,8 +111,8 @@ plugins/rikyu/         actual plugin payload for both Claude Code and Codex
   .claude-plugin/      Claude Code plugin manifest
   .codex-plugin/       Codex plugin manifest
   .mcp.json            shared MCP launch config (uv tool run from main)
-  skills/              ai4s-configuring, ai4s-submitting-jobs,
-                       ai4s-monitoring-jobs, ai4s-reference, ai4s-demo
+  skills/              rikyu-configuring, rikyu-submitting-jobs,
+                       rikyu-monitoring-jobs, rikyu-reference, rikyu-demo
 IRI_CHECKLIST.md       API coverage tracker — keep in sync with hpc_server.py
 server/rikyu_mcp/
   data/                packaged static facts and docs_index

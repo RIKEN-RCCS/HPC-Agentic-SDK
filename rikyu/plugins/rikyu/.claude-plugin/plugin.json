@@ -1,10 +1,10 @@
 {
   "name": "rikyu",
-  "description": "Interact with the RIKEN AI4S supercomputer: submit and monitor Slurm jobs, manage files on the cluster, and search the official AI4S documentation.",
-  "version": "0.2.14",
+  "description": "Interact with the RIKEN Rikyu supercomputer: submit and monitor Slurm jobs, manage files on the cluster, and search the official Rikyu documentation.",
+  "version": "0.2.16",
   "author": {
     "name": "William Dawson",
     "email": "william.dawson@riken.jp"
   },
-  "keywords": ["hpc", "slurm", "riken", "ai4s", "supercomputer"]
+  "keywords": ["hpc", "slurm", "riken", "rikyu", "supercomputer"]
 }

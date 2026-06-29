@@ -1,8 +1,8 @@
 # RikyuAgent
 
-Claude Code and Codex plugin for the RIKEN **AI4S** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
+Claude Code and Codex plugin for the RIKEN **Rikyu** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
 
-AI4S is a GPU-first system: 216 NVIDIA Grace + GB200 nodes (4 GPUs each, aarch64).
+Rikyu is a GPU-first system: 216 NVIDIA Grace + GB200 nodes (4 GPUs each, aarch64).
 
 ## Install
 
@@ -45,7 +45,7 @@ Install in Codex:
 codex plugin marketplace add RIKEN-RCCS/Rikyu-Agent
 ```
 
-Then open `/plugins`, install `rikyu`, start a new thread, and run `/ai4s-demo`
+Then open `/plugins`, install `rikyu`, start a new thread, and run `/rikyu-demo`
 to verify the connection end-to-end.
 
 ## Configuration

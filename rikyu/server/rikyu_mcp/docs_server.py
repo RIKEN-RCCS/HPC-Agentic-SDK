@@ -1,4 +1,4 @@
-"""MCP server for searching the official AI4S supercomputer documentation.
+"""MCP server for searching the official Rikyu supercomputer documentation.
 
 Read-only and needs no SSH access. Uses the pre-built packaged index in
 rikyu_mcp/data/docs_index;
@@ -29,9 +29,9 @@ def _format(result: dict) -> str:
 
 @mcp.tool()
 def search_docs(query: str, top_k: int = 4) -> str:
-    """Search the official AI4S supercomputer documentation.
+    """Search the official Rikyu supercomputer documentation.
 
-    Always call this first before answering any question about AI4S specifics:
+    Always call this first before answering any question about Rikyu specifics:
     partitions, job submission, modules, scratch storage, login procedure, or
     any machine-specific detail. Do not rely on prior knowledge or the
     orientation facts embedded in skills — those are fallback aids, not
@@ -60,7 +60,7 @@ def search_docs(query: str, top_k: int = 4) -> str:
 
 @mcp.tool()
 def list_doc_sections() -> str:
-    """List every section of the AI4S documentation (table of contents)."""
+    """List every section of the Rikyu documentation (table of contents)."""
     lines = [f"- {c['breadcrumb']}  ({c['url']})" for c in _index().chunks]
     return "\n".join(lines)
 

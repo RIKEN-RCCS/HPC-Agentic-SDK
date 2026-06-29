@@ -1,12 +1,12 @@
 ---
-name: ai4s-reference
-description: Use when answering any question about AI4S supercomputer specifics — login, accounts, partitions, modules, storage, policies — or when unsure about a cluster detail. Search the official docs instead of guessing.
+name: rikyu-reference
+description: Use when answering any question about Rikyu supercomputer specifics — login, accounts, partitions, modules, storage, policies — or when unsure about a cluster detail. Search the official docs instead of guessing.
 ---
 
-# AI4S documentation reference
+# Rikyu documentation reference
 
-AI4S is an early-access system and its documentation evolves. Do not answer
-AI4S-specific questions from memory — ground answers in the official docs.
+Rikyu is an early-access system and its documentation evolves. Do not answer
+Rikyu-specific questions from memory — ground answers in the official docs.
 
 ## Workflow
 

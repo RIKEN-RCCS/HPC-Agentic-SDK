@@ -1,9 +1,9 @@
 ---
-name: ai4s-monitoring-jobs
-description: Use when the user asks about the status, progress, output, history, or failure of jobs on the AI4S supercomputer / rikyu cluster, or about queue and node availability.
+name: rikyu-monitoring-jobs
+description: Use when the user asks about the status, progress, output, history, or failure of jobs on the Rikyu supercomputer, or about queue and node availability.
 ---
 
-# Monitoring jobs on the AI4S supercomputer
+# Monitoring jobs on the Rikyu supercomputer
 
 ## Status checks
 
@@ -14,7 +14,7 @@ description: Use when the user asks about the status, progress, output, history,
 ## Job output and failure triage
 
 1. Stdout/stderr default to `<workdir>/slurm-<job_id>.out` (workdir is in the status record). Read with `fs_tail` (or `fs_head`/`fs_view`).
-2. Common AI4S failure modes:
+2. Common Rikyu failure modes:
    - **x86_64 binary on aarch64 nodes** → "Exec format error" in output.
    - **OOM** → `native_state` OUT_OF_MEMORY; the fix is a bigger partition share (e.g. `1n1gpu` → `1n2gpu` doubles memory and CPUs).
    - **Time limit** → `native_state` TIMEOUT; raise duration (max 96h) or move to `4n4gpu-p`.

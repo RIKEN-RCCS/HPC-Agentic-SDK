@@ -1,8 +1,8 @@
-"""MCP server for the AI4S supercomputer, modeled on the IRI Facility API.
+"""MCP server for the Rikyu supercomputer, modeled on the IRI Facility API.
 
 Tool groups mirror the IRI resource groups (facility, status, compute,
-filesystem); each operation is executed on the AI4S login node over SSH via
-remotemanager, since AI4S does not expose a REST facility API itself.
+filesystem); each operation is executed on the Rikyu login node over SSH via
+remotemanager, since Rikyu does not expose a REST facility API itself.
 Coverage of the full API is tracked in IRI_CHECKLIST.md at the repo root.
 """
 import shlex
@@ -16,7 +16,7 @@ from rikyu_mcp.serving import serve
 
 mcp = FastMCP("rikyu-hpc")
 
-RESOURCE_ID = "ai4s"
+RESOURCE_ID = "rikyu"
 
 
 def _check_resource(resource_id: str) -> None:
@@ -28,9 +28,9 @@ def _check_resource(resource_id: str) -> None:
 
 @mcp.tool()
 def get_facility() -> dict:
-    """Describe the AI4S facility: partitions, modules, storage, conventions.
+    """Describe the Rikyu facility: partitions, modules, storage, conventions.
 
-    Static reference data (no SSH round-trip). On AI4S the partition name
+    Static reference data (no SSH round-trip). On Rikyu the partition name
     fixes the per-node resource share; jobs request GPUs with
     --gpus-per-node. (IRI: GET /facility)
     """
@@ -43,7 +43,7 @@ def get_facility() -> dict:
 def get_resources() -> list[dict]:
     """List compute resources and their live state. (IRI: GET /status/resources)
 
-    Returns the AI4S resource with a per-partition node-state summary
+    Returns the Rikyu resource with a per-partition node-state summary
     (allocated/idle/other/total) from sinfo.
     """
     return [_resource_detail()]
@@ -78,7 +78,7 @@ def _resource_detail(include_drain: bool = False) -> dict:
     resource: dict = {
         "id": RESOURCE_ID,
         "type": "compute",
-        "description": "RIKEN AI4S supercomputer (NVIDIA GB200, aarch64)",
+        "description": "RIKEN Rikyu supercomputer (NVIDIA GB200, aarch64)",
         "partitions": partitions,
     }
     if include_drain:
@@ -144,7 +144,7 @@ def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
 
     The spec is rendered as an sbatch script (kept under ~/.rikyu/jobs/ on
     the cluster for auditability) and submitted. Returns the job_id and the
-    script path. AI4S notes: attributes.queue_name picks the partition,
+    script path. Rikyu notes: attributes.queue_name picks the partition,
     which fixes the per-node resource share; resources.gpus_per_node must
     not exceed that share; executable may be a shell line such as
     'module load nvhpc && srun ./app'.
@@ -432,7 +432,7 @@ def fs_extract(
 
 @mcp.tool()
 def run_command_on_cluster(command: str) -> str:
-    """Run an arbitrary shell command on the AI4S login node (extension —
+    """Run an arbitrary shell command on the Rikyu login node (extension —
     not an IRI endpoint).
 
     Use only when no dedicated tool fits, e.g. checking GPU usage on a

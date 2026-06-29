@@ -37,7 +37,7 @@ def _parse_exit_code(s: str) -> int | None:
 
 
 def render_script(spec: JobSpec) -> str:
-    """Render a JobSpec as an AI4S sbatch script."""
+    """Render a JobSpec as a Rikyu sbatch script."""
     res = spec.resources
     attr = spec.attributes
 
@@ -49,7 +49,7 @@ def render_script(spec: JobSpec) -> str:
         f"#SBATCH --time={_duration_to_hms(attr.duration)}",
     ]
 
-    # GPU: gpus_per_node (AI4S extension) takes precedence over gpu_cores_per_process
+    # GPU: gpus_per_node (Rikyu extension) takes precedence over gpu_cores_per_process
     gpus = res.gpus_per_node if res.gpus_per_node else res.gpu_cores_per_process
     if gpus:
         lines.append(f"#SBATCH --gpus-per-node={gpus}")
@@ -95,7 +95,7 @@ def render_script(spec: JobSpec) -> str:
         command += " " + " ".join(shlex.quote(a) for a in spec.arguments)
 
     if spec.container:
-        # Use singularity exec: pyxis/enroot is installed on AI4S but broken
+        # Use singularity exec: pyxis/enroot is installed on Rikyu but broken
         # (/run/user/<uid> missing on compute nodes). Singularity exec works.
         c = spec.container
         sing_flags = []
