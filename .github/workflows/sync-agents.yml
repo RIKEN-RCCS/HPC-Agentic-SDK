@@ -21,6 +21,10 @@ jobs:
             --exclude='/.git/' \
             --exclude='/.claude-plugin/' \
             /tmp/hokusai-src/ hokusai/
+          VER=$(grep '^version' hokusai/server/pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VER\"/" \
+            hokusai/plugins/hokusai/.claude-plugin/plugin.json \
+            hokusai/plugins/hokusai/.codex-plugin/plugin.json
 
       - name: Sync Rikyu-Agent
         run: |
@@ -29,6 +33,10 @@ jobs:
             --exclude='/.git/' \
             --exclude='/.claude-plugin/' \
             /tmp/rikyu-src/ rikyu/
+          VER=$(grep '^version' rikyu/server/pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VER\"/" \
+            rikyu/plugins/rikyu/.claude-plugin/plugin.json \
+            rikyu/plugins/rikyu/.codex-plugin/plugin.json
 
       - name: Sync RCCS-CloudAgent
         run: |
@@ -37,6 +45,10 @@ jobs:
             --exclude='/.git/' \
             --exclude='/.claude-plugin/' \
             /tmp/rccs-src/ r-ccs-cloud/
+          VER=$(grep '^version' r-ccs-cloud/server/pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VER\"/" \
+            r-ccs-cloud/plugins/rccs-cloud/.claude-plugin/plugin.json \
+            r-ccs-cloud/plugins/rccs-cloud/.codex-plugin/plugin.json
 
       - name: Commit and push
         run: |
