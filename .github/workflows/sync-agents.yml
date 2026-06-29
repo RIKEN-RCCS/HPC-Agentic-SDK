@@ -30,14 +30,22 @@ jobs:
             --exclude='/.claude-plugin/' \
             /tmp/rikyu-src/ rikyu/
 
+      - name: Sync RCCS-CloudAgent
+        run: |
+          git clone --depth=1 https://github.com/william-dawson/RCCS-CloudAgent.git /tmp/rccs-src
+          rsync -a --delete \
+            --exclude='/.git/' \
+            --exclude='/.claude-plugin/' \
+            /tmp/rccs-src/ r-ccs-cloud/
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add hokusai/ rikyu/
+          git add hokusai/ rikyu/ r-ccs-cloud/
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "sync: update Hokusai-Agent and Rikyu-Agent mirrors"
+            git commit -m "sync: update Hokusai-Agent, Rikyu-Agent, and RCCS-CloudAgent mirrors"
             git push
           fi
