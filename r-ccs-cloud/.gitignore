@@ -6,3 +6,5 @@ build/
 .venv/
 openapi.json
 *.npy
+# uv tool run resolves its own dependencies; a committed lock file would drift without benefit
+server/uv.lock

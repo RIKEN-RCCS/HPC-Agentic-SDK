@@ -1,6 +1,6 @@
 {
   "name": "rikyu",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "Interact with the RIKEN Rikyu supercomputer: submit and monitor Slurm jobs, manage files on the cluster, and search the official Rikyu documentation.",
   "author": {
     "name": "William Dawson",

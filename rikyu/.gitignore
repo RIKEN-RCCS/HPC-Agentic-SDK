@@ -9,3 +9,5 @@ server/dataset-*
 remotemanager.log
 # Third-party IRI spec (ALCF, no redistribution license) — fetch when needed (see AGENTS.md)
 openapi.json
+# uv tool run resolves its own dependencies; a committed lock file would drift without benefit
+server/uv.lock

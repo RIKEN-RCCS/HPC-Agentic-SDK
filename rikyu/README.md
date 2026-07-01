@@ -48,6 +48,63 @@ codex plugin marketplace add RIKEN-RCCS/Rikyu-Agent
 Then open `/plugins`, install `rikyu`, start a new thread, and run `/rikyu-demo`
 to verify the connection end-to-end.
 
+### Manual (any MCP-compatible client)
+
+#### Option A — Using Hatch!
+
+[Hatch!](https://github.com/CrackingShells/Hatch) registers MCP servers on any
+supported host from a single command. Install it once, then configure both
+servers — replace `<host>` with your target platform (`claude-code`, `codex`,
+`cursor`, `vscode`, `claude-desktop`, `kiro`, `gemini`, `lmstudio`, or any other
+[supported host](https://github.com/CrackingShells/Hatch#supported-mcp-hosts)):
+
+```bash
+pip install hatch-xclam
+
+hatch mcp configure rikyu-hpc --host <host> \
+  --command uv \
+  --args "tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-hpc-mcp"
+
+hatch mcp configure rikyu-docs --host <host> \
+  --command uv \
+  --args "tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-docs-mcp"
+```
+
+To replicate the same configuration to additional hosts:
+
+```bash
+hatch mcp sync --from-host <host> --to-host cursor,vscode
+```
+
+#### Option B — Edit `.mcp.json` directly
+
+Create or edit `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "rikyu-hpc": {
+      "command": "uv",
+      "args": ["tool", "run", "--quiet", "--from", "git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server", "rikyu-hpc-mcp"],
+      "env": {}
+    },
+    "rikyu-docs": {
+      "command": "uv",
+      "args": ["tool", "run", "--quiet", "--from", "git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server", "rikyu-docs-mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+#### Verify
+
+Run the doctor check to verify connectivity:
+
+```bash
+uv tool run --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-doctor
+```
+
 ## Configuration
 
 Settings live in `~/.rikyu/config.json`:
