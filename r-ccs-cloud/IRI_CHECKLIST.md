@@ -63,8 +63,8 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | GET /filesystem/head | `fs_head` | ✅ | |
 | GET /filesystem/tail | `fs_tail` | ✅ | Primary way to read job output |
 | POST /filesystem/mkdir | `fs_mkdir` | ✅ | |
-| POST /filesystem/upload | `fs_upload` | ✅ | Text or base64 binary; 5 MB cap |
-| GET /filesystem/download | `fs_download` | ✅ | Base64-encoded; 5 MB cap |
+| POST /filesystem/upload | `fs_upload` | ⚠️ deviation | **Deliberately diverges from the IRI multipart shape.** `fs_upload(path, local_path)` transfers local→remote via rsync (scp fallback if rsync < 3.0) and returns metadata `{remote_path, bytes, sha256, verified, transport}`. No size limit. IRI's multipart body would route file bytes through the MCP tool input. |
+| GET /filesystem/download | `fs_download` | ⚠️ deviation | **Deliberately diverges from the IRI base64 shape.** `fs_download(path, local_path=None)` transfers remote→local via rsync (scp fallback if rsync < 3.0) and returns metadata `{local_path, bytes, sha256, verified, transport}`. No size limit. IRI returns base64 in the response body; routing bytes through the model context fails past ~12 KB (0.9 tokens/byte × 10k-token tool cap). |
 | GET /filesystem/checksum | `fs_checksum` | ✅ | `sha256sum` |
 | POST /filesystem/mv | `fs_mv` | ✅ | |
 | POST /filesystem/cp | `fs_cp` | ✅ | |

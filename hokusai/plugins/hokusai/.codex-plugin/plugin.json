@@ -1,6 +1,6 @@
 {
   "name": "hokusai",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "Interact with the RIKEN HOKUSAI BigWaterfall2 (HBW2) supercomputer: submit and monitor Slurm jobs, manage files on the cluster, and search the official User's Guide.",
   "author": {
     "name": "William Dawson",

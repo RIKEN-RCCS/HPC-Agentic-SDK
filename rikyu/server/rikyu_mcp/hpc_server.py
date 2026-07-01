@@ -6,11 +6,18 @@ remotemanager, since Rikyu does not expose a REST facility API itself.
 Coverage of the full API is tracked in IRI_CHECKLIST.md at the repo root.
 """
 import shlex
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
 from rikyu_mcp import compute, config
-from rikyu_mcp.middleware import quote_path, run_command, write_remote_file
+from rikyu_mcp.middleware import (
+    download_file,
+    quote_path,
+    run_command,
+    upload_file,
+    write_remote_file,
+)
 from rikyu_mcp.models import CompressionType, Job, JobSpec
 from rikyu_mcp.serving import serve
 
@@ -270,25 +277,14 @@ def fs_mkdir(path: str) -> str:
 
 
 @mcp.tool()
-def fs_upload(path: str, content: str, binary: bool = False) -> str:
-    """Write a file on the cluster, creating parent directories.
-    (IRI: POST /filesystem/upload — max 5 MB)
+def fs_upload(path: str, local_path: str) -> dict:
+    """Upload a local file to the cluster. (IRI: POST /filesystem/upload)
 
-    For text files pass the content directly (binary=False, the default).
-    For binary files pass the content as base64 and set binary=True; it will
-    be decoded before writing. Use fs_compress + fs_download for files over 5 MB.
+    Transfers local_path → path on the cluster via rsync or scp.
+    Creates remote parent directories as needed. No size limit.
+    Returns {remote_path, bytes, sha256, verified, transport}.
     """
-    import base64 as _b64
-    raw: str | bytes
-    if binary:
-        raw = _b64.b64decode(content)
-    else:
-        raw = content
-    size = len(raw) if isinstance(raw, bytes) else len(raw.encode())
-    if size > 5 * 1024 * 1024:
-        raise ValueError(f"Content is {size:,} bytes — exceeds 5 MB upload limit.")
-    abs_path = write_remote_file(path, raw)
-    return f"Wrote {size:,} bytes to {abs_path}"
+    return upload_file(Path(local_path), path)
 
 
 @mcp.tool()
@@ -298,21 +294,16 @@ def fs_checksum(path: str) -> str:
 
 
 @mcp.tool()
-def fs_download(path: str) -> str:
-    """Download a small file from the cluster as base64. (IRI: GET /filesystem/download)
+def fs_download(path: str, local_path: str | None = None) -> dict:
+    """Download a file from the cluster to local disk. (IRI: GET /filesystem/download ⚠ deviation)
 
-    Capped at 5 MB (matching IRI spec). Use fs_compress first for larger files,
-    then download the archive. The caller can base64-decode and write locally.
+    Transfers path → local_path via rsync or scp. No size limit.
+    local_path defaults to the filename in the current working directory.
+    Returns {local_path, bytes, sha256, verified, transport}.
+    Deliberately deviates from the IRI base64 shape — see IRI_CHECKLIST.md.
     """
-    size_out = run_command(f"stat -c %s {quote_path(path)}")
-    size = int(size_out.strip())
-    if size > 5 * 1024 * 1024:
-        raise ValueError(
-            f"File is {size:,} bytes — exceeds 5 MB limit. "
-            f"Compress it first with fs_compress, or transfer with: "
-            f"scp rikyu:{path} ."
-        )
-    return run_command(f"base64 {quote_path(path)}")
+    dest = Path(local_path) if local_path else Path.cwd() / Path(path).name
+    return download_file(path, dest)
 
 
 @mcp.tool()

@@ -14,9 +14,11 @@ Three conventions are enforced in one place:
 """
 import base64
 import contextlib
+import hashlib
 import shlex
 import sys
 from functools import lru_cache
+from pathlib import Path
 
 
 def norm_path(path: str) -> str:
@@ -113,3 +115,92 @@ def write_remote_file(path: str, content: str | bytes) -> str:
     if not abs_path.startswith("/"):
         raise RuntimeError(f"Failed to write {path}: {output}")
     return abs_path
+
+
+# ---------------------------------------------------------------------------
+# File transfer (local ↔ remote)
+# ---------------------------------------------------------------------------
+
+def _make_transport():
+    """Return a fresh rsync transport, falling back to scp if rsync < 3.0."""
+    from remotemanager.transport.rsync import rsync
+    from remotemanager.transport.scp import scp as Scp
+    c = get_frontend()
+    try:
+        return rsync(url=c)
+    except RuntimeError:
+        return Scp(url=c)
+
+
+def _sha256_local(path: Path) -> str:
+    """SHA-256 of a local file, streamed in 1 MB chunks."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        while chunk := fh.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download_file(remote_path: str, local_dest: Path) -> dict:
+    """Pull remote_path to local_dest via rsync or scp; return transfer metadata."""
+    local_dest = Path(local_dest)
+    local_dest.parent.mkdir(parents=True, exist_ok=True)
+
+    remote_sha = run_command(f"sha256sum {quote_path(remote_path)}").split()[0]
+
+    remote_name = Path(remote_path).name
+    transport = _make_transport()
+    transport.queue_for_pull(
+        files=remote_name,
+        remote=str(Path(remote_path).parent),
+        local=str(local_dest.parent),
+    )
+    with contextlib.redirect_stdout(sys.stderr):
+        transport.transfer()
+
+    landed = local_dest.parent / remote_name
+    if landed != local_dest:
+        landed.rename(local_dest)
+
+    local_sha = _sha256_local(local_dest)
+    return {
+        "local_path": str(local_dest),
+        "bytes": local_dest.stat().st_size,
+        "sha256": local_sha,
+        "verified": remote_sha == local_sha,
+        "transport": type(transport).__name__,
+    }
+
+
+def upload_file(local_path: Path, remote_path: str) -> dict:
+    """Push local_path to remote_path via rsync or scp; return transfer metadata."""
+    local_path = Path(local_path)
+    if not local_path.exists():
+        raise FileNotFoundError(str(local_path))
+
+    local_sha = _sha256_local(local_path)
+    remote_path = norm_path(remote_path)
+
+    run_command(f"mkdir -p {quote_path(str(Path(remote_path).parent))}")
+
+    transport = _make_transport()
+    transport.queue_for_push(
+        files=local_path.name,
+        local=str(local_path.parent),
+        remote=str(Path(remote_path).parent),
+    )
+    with contextlib.redirect_stdout(sys.stderr):
+        transport.transfer()
+
+    landed = str(Path(remote_path).parent / local_path.name)
+    if landed != remote_path:
+        run_command(f"mv {quote_path(landed)} {quote_path(remote_path)}")
+
+    remote_sha = run_command(f"sha256sum {quote_path(remote_path)}").split()[0]
+    return {
+        "remote_path": remote_path,
+        "bytes": local_path.stat().st_size,
+        "sha256": local_sha,
+        "verified": remote_sha == local_sha,
+        "transport": type(transport).__name__,
+    }
