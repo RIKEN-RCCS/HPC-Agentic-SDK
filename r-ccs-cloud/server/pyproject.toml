@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rccs-cloud-mcp"
-version = "0.1.4"
+version = "0.1.5"
 description = "MCP servers for the RIKEN R-CCS Cloud: Slurm interaction and documentation search."
 requires-python = ">=3.10"
 dependencies = [
