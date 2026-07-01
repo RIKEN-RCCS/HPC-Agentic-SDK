@@ -7,7 +7,7 @@
         "run",
         "--quiet",
         "--from",
-        "git+https://github.com/RIKEN-RCCS/RCCS-CloudAgent.git@main#subdirectory=server",
+        "git+https://github.com/william-dawson/RCCS-CloudAgent.git@main#subdirectory=server",
         "rccs-cloud-hpc-mcp"
       ],
       "env": {}
@@ -19,7 +19,7 @@
         "run",
         "--quiet",
         "--from",
-        "git+https://github.com/RIKEN-RCCS/RCCS-CloudAgent.git@main#subdirectory=server",
+        "git+https://github.com/william-dawson/RCCS-CloudAgent.git@main#subdirectory=server",
         "rccs-cloud-docs-mcp"
       ],
       "env": {}
