@@ -4,6 +4,32 @@ Claude Code and Codex plugin for the RIKEN **HOKUSAI BigWaterfall2 (HBW2)** supe
 
 HBW2 is a CPU-first system: the 312-node Massively Parallel Computer (MPC) and the large-memory server (LMC) do most of the work, with a small 4-node H100 GPU server for postprocessing.
 
+## Configure
+
+Settings live in `~/.hokusai/config.json`:
+
+```json
+{
+  "ssh": {"host": "hokusai"},
+  "account": "RB999999"
+}
+```
+
+- `ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required; register your key on the [HBW2 Portal](https://hokusai.riken.jp/hbw2/)). `hokusai.riken.jp` round-robins to `hokusai1..4`. The env var `HOKUSAI_HOST` overrides the file.
+- `account` is your project ID (e.g. `RB999999`), required for job execution. A JobSpec can override it per job. `HOKUSAI_ACCOUNT` overrides the file.
+
+For documentation search, add your API key for the shared RIKEN embedding service:
+
+```json
+{
+  "ssh": {"host": "hokusai"},
+  "account": "RB999999",
+  "embedding": {"api_key": "..."}
+}
+```
+
+The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.
+
 ## Install
 
 ### Prerequisite: uv
@@ -48,9 +74,9 @@ codex plugin marketplace add RIKEN-RCCS/Hokusai-Agent
 Then open `/plugins`, install `hokusai`, start a new thread, and run
 `/hokusai-demo` to verify the connection end-to-end.
 
-### Manual (any MCP-compatible client)
+## Manual Install (any MCP-compatible client)
 
-#### Option A — Using Hatch!
+### Option A — Using Hatch!
 
 [Hatch!](https://github.com/CrackingShells/Hatch) registers MCP servers on any
 supported host from a single command. Install it once, then configure both
@@ -76,7 +102,7 @@ To replicate the same configuration to additional hosts:
 hatch mcp sync --from-host <host> --to-host cursor,vscode
 ```
 
-#### Option B — Edit `.mcp.json` directly
+### Option B — Edit `.mcp.json` directly
 
 Create or edit `.mcp.json` in your project root:
 
@@ -97,36 +123,10 @@ Create or edit `.mcp.json` in your project root:
 }
 ```
 
-#### Verify
+## Verify
 
 Run the doctor check to verify connectivity:
 
 ```bash
 uv tool run --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-doctor
 ```
-
-## Configuration
-
-Settings live in `~/.hokusai/config.json`:
-
-```json
-{
-  "ssh": {"host": "hokusai"},
-  "account": "RB999999"
-}
-```
-
-- `ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required; register your key on the [HBW2 Portal](https://hokusai.riken.jp/hbw2/)). `hokusai.riken.jp` round-robins to `hokusai1..4`. The env var `HOKUSAI_HOST` overrides the file.
-- `account` is your project ID (e.g. `RB999999`), required for job execution. A JobSpec can override it per job. `HOKUSAI_ACCOUNT` overrides the file.
-
-For documentation search, add your API key for the shared RIKEN embedding service:
-
-```json
-{
-  "ssh": {"host": "hokusai"},
-  "account": "RB999999",
-  "embedding": {"api_key": "..."}
-}
-```
-
-The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.

@@ -147,7 +147,7 @@ def download_file(remote_path: str, local_dest: Path) -> dict:
     local_dest = Path(local_dest)
     local_dest.parent.mkdir(parents=True, exist_ok=True)
 
-    remote_sha = run_command(f"sha256sum {quote_path(remote_path)}").split()[0]
+    remote_sha = run_command(f"sha256sum {quote_path(remote_path)}").strip().splitlines()[-1].split()[0]
 
     remote_name = Path(remote_path).name
     transport = _make_transport()
@@ -157,7 +157,7 @@ def download_file(remote_path: str, local_dest: Path) -> dict:
         local=str(local_dest.parent),
     )
     with contextlib.redirect_stdout(sys.stderr):
-        transport.transfer()
+        transport.transfer(raise_errors=False)
 
     landed = local_dest.parent / remote_name
     if landed != local_dest:
@@ -191,13 +191,13 @@ def upload_file(local_path: Path, remote_path: str) -> dict:
         remote=str(Path(remote_path).parent),
     )
     with contextlib.redirect_stdout(sys.stderr):
-        transport.transfer()
+        transport.transfer(raise_errors=False)
 
     landed = str(Path(remote_path).parent / local_path.name)
     if landed != remote_path:
         run_command(f"mv {quote_path(landed)} {quote_path(remote_path)}")
 
-    remote_sha = run_command(f"sha256sum {quote_path(remote_path)}").split()[0]
+    remote_sha = run_command(f"sha256sum {quote_path(remote_path)}").strip().splitlines()[-1].split()[0]
     return {
         "remote_path": remote_path,
         "bytes": local_path.stat().st_size,

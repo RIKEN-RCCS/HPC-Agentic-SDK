@@ -4,6 +4,29 @@ Claude Code and Codex plugin for the RIKEN **R-CCS Cloud** — submit and monito
 
 R-CCS Cloud is a heterogeneous research testbed: ~20 Slurm partitions spanning CPU-only (A64FX, EPYC, Xeon), NVIDIA GPU, AMD GPU, and Intel GPU hardware. Partition selection determines everything — the hardware family, the required modules, and the job flags.
 
+## Configure
+
+Settings live in `~/.rccs-cloud/config.json`:
+
+```json
+{
+  "ssh": {"host": "rccs-cloud"}
+}
+```
+
+`ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required). The env var `RCCS_CLOUD_HOST` overrides the file.
+
+For documentation search, add your API key for the shared RIKEN embedding service:
+
+```json
+{
+  "ssh": {"host": "rccs-cloud"},
+  "embedding": {"api_key": "..."}
+}
+```
+
+The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.
+
 ## Install
 
 ### Prerequisite: uv
@@ -48,9 +71,9 @@ codex plugin marketplace add william-dawson/RCCS-CloudAgent
 Then open `/plugins`, install `rccs-cloud`, start a new thread, and run
 `/rccs-cloud-demo` to verify the connection end-to-end.
 
-### Manual (any MCP-compatible client)
+## Manual Install (any MCP-compatible client)
 
-#### Option A — Using Hatch!
+### Option A — Using Hatch!
 
 [Hatch!](https://github.com/CrackingShells/Hatch) registers MCP servers on any
 supported host from a single command. Install it once, then configure both
@@ -76,7 +99,7 @@ To replicate the same configuration to additional hosts:
 hatch mcp sync --from-host <host> --to-host cursor,vscode
 ```
 
-#### Option B — Edit `.mcp.json` directly
+### Option B — Edit `.mcp.json` directly
 
 Create or edit `.mcp.json` in your project root:
 
@@ -97,33 +120,10 @@ Create or edit `.mcp.json` in your project root:
 }
 ```
 
-#### Verify
+## Verify
 
 Run the doctor check to verify connectivity:
 
 ```bash
 uv tool run --from git+https://github.com/william-dawson/RCCS-CloudAgent.git@main#subdirectory=server rccs-cloud-doctor
 ```
-
-## Configuration
-
-Settings live in `~/.rccs-cloud/config.json`:
-
-```json
-{
-  "ssh": {"host": "rccs-cloud"}
-}
-```
-
-`ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required). The env var `RCCS_CLOUD_HOST` overrides the file.
-
-For documentation search, add your API key for the shared RIKEN embedding service:
-
-```json
-{
-  "ssh": {"host": "rccs-cloud"},
-  "embedding": {"api_key": "..."}
-}
-```
-
-The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.
