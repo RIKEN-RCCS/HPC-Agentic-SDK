@@ -14,26 +14,24 @@ Run each step in order. Present results as a readable narrative — not raw JSON
 
 Call `get_facility`. Present the key facts as a short table:
 - Hardware: GPU model, CPU architecture, node count
-- Partitions: name → GPUs/node, CPUs/node, max wall time (one row per partition)
-- Storage tiers (home, scratch, any project storage)
+- GPU-count table: GPUs requested → nodes used, CPU cores/node, memory/node, max wall time (there's a single `gpu` partition — GPU count drives placement, not partition choice)
+- Storage tiers (home, group, scratch)
 
-Lead with one sentence: **"The Rikyu supercomputer at RIKEN is an NVIDIA GB200 cluster running <N> nodes."**
+Lead with one sentence: **"The Rikyu supercomputer at RIKEN is an NVIDIA GB200 NVL4 cluster running <N> nodes."**
 
 ---
 
 ## Step 2 — Live cluster status
 
-Call `get_resources`. For each partition, show a mini utilization bar:
+Call `get_resources`. Show a mini utilization bar for the `gpu` partition:
 
 ```
-1n1gpu  ████████░░  80/100 nodes busy
-1n2gpu  ███░░░░░░░  30/100 idle
-...
+gpu  ████████░░  320/400 nodes busy
 ```
 
 (Use █ for allocated, ░ for idle, scaled to ~10 chars. Add the idle count in plain text.)
 
-Point out which partitions have the most idle nodes right now — that's where a job would start fastest.
+Note how many idle nodes there are right now — that's roughly how much headroom exists for a job to start immediately.
 
 ---
 
@@ -41,9 +39,9 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 Call `search_docs` with *"how does the Grace Hopper architecture split memory between CPU and GPU, and what does that mean for data placement?"*
 
-This surfaces something genuinely GB200-specific: the NVLink-C2C unified memory model is unlike any x86+discrete-GPU cluster, and getting data placement wrong is the most common performance mistake on Rikyu.
+This surfaces something genuinely GB200-specific: the NVLink-C2C unified memory model is unlike any x86+discrete-GPU cluster, and getting data placement wrong is a common performance mistake on Rikyu.
 
-Show the top result: the breadcrumb, a short excerpt, and the URL. Then note whether the result came from vector search or BM25 keyword fallback (the `method` field) — if vector, say: *"Semantic search is active — results are ranked by meaning, not just keyword matches."*
+Show the top result: the breadcrumb and a short excerpt — **no URL**, this searches a guide bundled with the agent, not a live site. Then note whether the result came from vector search or BM25 keyword fallback (the `method` field) — if vector, say: *"Semantic search is active — results are ranked by meaning, not just keyword matches."* If BM25, say so plainly rather than implying a link exists to follow up.
 
 ---
 
@@ -80,8 +78,8 @@ Submit via `submit_job` with this spec:
 {
   "name": "rikyu-demo",
   "executable": "hostname && echo '---' && nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader",
-  "resources": {"node_count": 1, "gpus_per_node": 1, "processes_per_node": 1},
-  "attributes": {"duration": 300, "queue_name": "1n1gpu"}
+  "resources": {"gpus": 1, "processes_per_node": 1},
+  "attributes": {"duration": 300, "queue_name": "gpu"}
 }
 ```
 
@@ -108,8 +106,8 @@ If it exists, submit via `submit_job`:
 {
   "name": "rikyu-demo-container",
   "executable": "cat /etc/os-release && uname -m",
-  "resources": {"node_count": 1, "gpus_per_node": 1},
-  "attributes": {"duration": 300, "queue_name": "1n1gpu"},
+  "resources": {"gpus": 1},
+  "attributes": {"duration": 300, "queue_name": "gpu"},
   "container": {
     "image": "$HOME/ubuntu-22.04.sif"
   }
@@ -129,9 +127,9 @@ Say: *"The same spec works with any Singularity-compatible image — docker:// U
 
 Summarize what just happened in 5 bullet points:
 - Facility and live cluster status checked
-- Documentation searched with semantic vector search
+- Documentation guide searched (note whether vector or BM25 search actually ran)
 - Filesystem explored with copy, checksum, and move
 - Bare-metal job submitted, ran, GPU output retrieved
-- Container job ran inside Ubuntu on the same GB200 hardware
+- Container job ran inside Ubuntu on the same GB200 NVL4 hardware
 
 Then say: *"From here you can submit real workloads with /rikyu-submitting-jobs, monitor them with /rikyu-monitoring-jobs, or ask anything about the cluster."*

@@ -1,116 +1,104 @@
 [
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Overview",
-    "url": "https://cloud.r-ccs.riken.jp/en/#overview",
-    "text": "The R-CCS Cloud is a heterogeneous HPC cluster managed by RIKEN R-CCS. It is a\nSlurm shop: all jobs are submitted via `sbatch`; interactive use is possible with\n`srun --pty`. The cluster exposes many partitions covering a wide range of CPU\narchitectures and GPU vendors. **Modules are partition-specific** — the correct\n`system/<partition>` module must be loaded in every job script, and modules from\none partition must never be used on another.",
+    "breadcrumb": "R-CCS Cloud",
+    "url": "",
+    "text": "An original, plain-language guide to driving the RIKEN R-CCS Cloud through the\nagent. It covers the stable facts that shape how a job is described — hardware,\nthe Slurm dialect, modules, storage, and common failure modes. It deliberately\nomits anything you can read live (current queue occupancy, `module avail`\noutput, disk usage) and generic HPC background.",
     "id": 0
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Login",
-    "url": "https://cloud.r-ccs.riken.jp/en/#login",
-    "text": "SSH destination: `login.cloud.r-ccs.riken.jp`",
+    "breadcrumb": "R-CCS Cloud > Orientation",
+    "url": "",
+    "text": "The R-CCS Cloud is a heterogeneous research testbed managed by RIKEN R-CCS. It\nis a Slurm cluster: jobs go through `sbatch`, and interactive sessions are\npossible with `srun --pty`. Roughly twenty partitions span several CPU\narchitectures and three GPU vendors.\n\nThe single most important idea: **the partition you choose determines\neverything else** — the CPU/GPU hardware, the system module you must load, the\nGPU request flag, and even the operating system. There is no one \"normal\" way\nto run here; every job starts with a partition decision.",
     "id": 1
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Partitions and Hardware",
-    "url": "https://cloud.r-ccs.riken.jp/en/#partitions-and-hardware",
-    "text": "The cluster has ~20 partitions. They fall into four families by GPU vendor (plus\nCPU-only). Choose the right partition before writing your script — the module\ncommands, GPU specification flags, and even the OS differ by partition.",
+    "breadcrumb": "R-CCS Cloud > Login",
+    "url": "",
+    "text": "SSH to `login.cloud.r-ccs.riken.jp`. Authentication is key-based; the agent's\nSSH layer cannot answer a password prompt, so set up key auth (ideally behind a\n`~/.ssh/config` alias) before configuring the plugin.",
     "id": 2
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Partitions and Hardware > CPU-only partitions",
-    "url": "https://cloud.r-ccs.riken.jp/en/#cpu-only-partitions",
-    "text": "| Partition | Nodes | CPU | Memory | Network | Notes |\n|-----------|------:|-----|-------:|---------|-------|\n| fx700 | 31 | Fujitsu A64FX | 32 GB | InfiniBand EDR 100 Gbps | |\n| genoa | 16 | AMD EPYC 9684X | 768 GB | Ethernet 1 Gbps | |\n| genoa-m | 1 | AMD EPYC 9684X × 2 | 3,072 GB | Ethernet 1 Gbps | Large-memory node |\n| r340 | 1 | Intel Xeon E-2134 | 64 GB | Ethernet 1 Gbps | Multi-user; cross-compilation env for FX700 |\n\n**fx700 note:** The A64FX is a Fujitsu Arm-based processor. Binaries compiled for\nx86_64 will not run here. Use r340 as the cross-compilation environment when\ntargeting fx700 from an x86 workstation.",
+    "breadcrumb": "R-CCS Cloud > Partitions and hardware",
+    "url": "",
+    "text": "Partitions fall into five groups. Node counts and exact specs are in the\nfacility data (`get_facility`); the shape below is what matters when writing a\nscript.",
     "id": 3
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Partitions and Hardware > NVIDIA GPU partitions",
-    "url": "https://cloud.r-ccs.riken.jp/en/#nvidia-gpu-partitions",
-    "text": "| Partition | Nodes | CPU | GPU | Memory | Network | Notes |\n|-----------|------:|-----|-----|-------:|---------|-------|\n| a100 | 2 | AMD EPYC 7763 × 2 | A100 × 8 | 2,048 GB | InfiniBand HDR 200 Gbps × 8 | |\n| b300 | 1 | Intel Xeon 6767P × 2 | B300 SXM6 × 8 | 2,048 GB | Ethernet 1 Gbps | Needs `--gpus=<n>` |\n| ai-h100l | 2 | Intel Xeon Gold 5515+ × 2 | H100 NVL × 1 | 256 GB | Ethernet 1 Gbps | Restricted — see below |\n| ai-h100l-pu | 2 | Intel Xeon Gold 5515+ × 2 | H100 NVL × 1 | 256 GB | Ethernet 1 Gbps | Open to all users; max 30 min walltime |\n| ai-h200-brc | 1 | Intel Xeon Platinum 8592+ × 2 | H200 × 8 | 1,536 GB | Ethernet 1 Gbps | Needs `--gpus=<n>`; IB NDR 200 Gbps in preparation |\n| ai-l40s | 7 | AMD EPYC 9554 × 2 | L40S × 8 | 1,536 GB | Ethernet 1 Gbps | Needs `--gpus=<n>`; IB NDR 200 Gbps in preparation |\n| qc-a100 | 2 | AMD EPYC 7713 × 2 | A100 × 8 | 4,096 GB | InfiniBand HDR 200 Gbps | Needs `--gpus=<n>` |\n| qc-h100 | 1 | AMD EPYC 9534 × 2 | H100 × 4 | 1,536 GB | InfiniBand HDR 200 Gbps | Currently under repair |\n| qc-gh200 | 8 | NVIDIA Grace (aarch64) | GH200 superchip | 512 GB | InfiniBand HDR 200 Gbps | Unified CPU+GPU; no `--gpus` flag needed |\n\n**ng-dgx partitions (Ubuntu OS — see below):**\n\n| Partition | Nodes | Hardware | Memory | Network |\n|-----------|------:|----------|-------:|---------|\n| ng-dgx-m0 | 2 | NVIDIA GB10 Grace Blackwell Superchip | 128 GB | Ethernet 10 Gbps |\n| ng-dgx-m1 | 2 | NVIDIA GB10 Grace Blackwell Superchip | 128 GB | Ethernet 10 Gbps |\n| ng-dgx-m2 | 2 | NVIDIA GB10 Grace Blackwell Superchip | 128 GB | Ethernet 10 Gbps |\n| ng-dgx-m3 | 2 | NVIDIA GB10 Grace Blackwell Superchip | 128 GB | Ethernet 10 Gbps |\n\nThe two nodes within each ng-dgx-m[0–3] pair are connected at 200 Gbps to each\nother. Across pairs, connectivity is 10 Gbps Ethernet. Like qc-gh200, the GB10 is\na unified Grace+Blackwell superchip — no `--gpus` flag is needed.",
+    "breadcrumb": "R-CCS Cloud > Partitions and hardware > CPU-only",
+    "url": "",
+    "text": "- **fx700** — Fujitsu A64FX, an Arm (aarch64) processor with SVE and HBM2, 32 GB,\n  InfiniBand EDR. x86_64 binaries will not run; cross-compile on r340.\n- **genoa** — AMD EPYC 9684X, x86_64, 768 GB, Ethernet. The general-purpose\n  default partition.\n- **genoa-m** — a single large-memory EPYC node, 3 TB.\n- **r340** — a small multi-user Intel Xeon (x86_64) node used as the\n  cross-compilation environment for fx700. No system module required.",
     "id": 4
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Partitions and Hardware > AMD GPU partitions",
-    "url": "https://cloud.r-ccs.riken.jp/en/#amd-gpu-partitions",
-    "text": "| Partition | Nodes | CPU | GPU | Memory | Network | Notes |\n|-----------|------:|-----|-----|-------:|---------|-------|\n| mi100 | 1 | AMD EPYC 7713 × 2 | MI100 × 8 | 1,024 GB | Ethernet 1 Gbps | |\n| qc-mi210 | 2 | AMD EPYC 9554 × 2 | MI210 × 1 | 1,536 GB | InfiniBand HDR 200 Gbps | GPU setup in progress |\n| qc-mi250 | 4 | AMD EPYC 7713 × 2 | MI250 × 8 | 1,024 GB | InfiniBand HDR 200 Gbps | |\n| fs-mi300a | 1 | — | MI300A × 4 | 512 GB | InfiniBand HDR 200 Gbps | APU: CPU and GPU share memory |\n| fs-mi300x | 1 | AMD EPYC 9534 × 2 | MI300X × 8 | 1,536 GB | InfiniBand HDR 200 Gbps | |",
+    "breadcrumb": "R-CCS Cloud > Partitions and hardware > NVIDIA GPU",
+    "url": "",
+    "text": "- **a100** (A100 ×8, IB), **qc-a100** (A100 ×8, 4 TB, IB), **qc-h100** (H100 ×4,\n  IB — *under repair*), **b300** (B300 ×8), **ai-h200-brc** (H200 ×8),\n  **ai-l40s** (L40S ×8), **ai-h100l** / **ai-h100l-pu** (H100 NVL ×1).\n- **qc-gh200** — NVIDIA Grace (aarch64) + GH200, a unified CPU+GPU superchip, IB.\n- **ng-dgx-m0..m3** — NVIDIA Grace (aarch64) + GB10 Blackwell superchips, running\n  **Ubuntu** (all other partitions run Rocky Linux). The two nodes in each pair\n  are linked at 200 Gbps; pairs connect to each other at 10 Gbps Ethernet.",
     "id": 5
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Partitions and Hardware > Intel GPU partitions",
-    "url": "https://cloud.r-ccs.riken.jp/en/#intel-gpu-partitions",
-    "text": "| Partition | Nodes | CPU | GPU | Memory | Network |\n|-----------|------:|-----|-----|-------:|---------|\n| qc-pvc | 2 | Intel Xeon Platinum 8470 × 2 | Data Center GPU Max 1550 × 8 | 2,048 GB | InfiniBand HDR 200 Gbps |",
+    "breadcrumb": "R-CCS Cloud > Partitions and hardware > AMD GPU",
+    "url": "",
+    "text": "- **mi100** (MI100 ×8), **qc-mi250** (MI250 ×8, IB), **fs-mi300x** (MI300X ×8, IB),\n  **fs-mi300a** (MI300A ×4 — an APU where CPU and GPU share one 512 GB HBM pool),\n  **qc-mi210** (MI210 ×1 — *GPU setup in progress*).",
     "id": 6
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Module Loading",
-    "url": "https://cloud.r-ccs.riken.jp/en/#module-loading",
-    "text": "**This is the most important setup step.** Every partition has its own\n`system/<partition>` module that configures paths, libraries, and compiler\nwrappers for that hardware. You must load it at the start of every job script,\nright after `source /etc/profile`. Loading a system module from a different\npartition will silently produce wrong results or runtime errors.\n\nThe required module commands per partition are:\n\n| Partition | Module command |\n|-----------|---------------|\n| fx700 | `module load system/fx700 FJSVstclanga` |\n| a100 | `module load system/a100 nvhpc` |\n| b300 | `module load system/b300 nvhpc` |\n| mi100 | `module load system/mi100 rocm` |\n| genoa, genoa-m | `module load system/genoa mpi/openmpi-x86_64` |\n| ai-h100l, ai-h100l-pu | `module load system/ai-h100l nvhpc` |\n| ai-h200-brc | `module load system/ai-h200-brc nvhpc` |\n| ai-l40s | `module load system/ai-l40s nvhpc` |\n| qc-a100 | `module load system/qc-a100 nvhpc` |\n| qc-h100 | `module load system/qc-h100 nvhpc` |\n| qc-gh200 | `module load system/qc-gh200 nvhpc` |\n| qc-mi210 | `module load system/qc-mi210 rocm` |\n| qc-mi250 | `module load system/qc-mi250 rocm` |\n| qc-pvc | `module load system/qc-pvc` or `source /opt/intel/oneapi/setvars.sh` |\n| fs-mi300a | `module load system/fs-mi300a rocm` |\n| fs-mi300x | `module load system/fs-mi300x rocm` |\n| ng-dgx-m[0–3] | `module load system/ng-dgx nvhpc` |\n| r340 | No system module required |\n\nAfter loading the system module, run `module avail` to see what additional\nsoftware is available for that partition.",
+    "breadcrumb": "R-CCS Cloud > Partitions and hardware > Intel GPU",
+    "url": "",
+    "text": "- **qc-pvc** — Intel Data Center GPU Max 1550 (\"Ponte Vecchio\") ×8, IB.",
     "id": 7
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Job Submission",
-    "url": "https://cloud.r-ccs.riken.jp/en/#job-submission",
-    "text": "The scheduler is Slurm. Submit jobs with `sbatch`; check status with `squeue`.",
+    "breadcrumb": "R-CCS Cloud > Partitions and hardware > Architectures at a glance",
+    "url": "",
+    "text": "x86_64 everywhere **except**: `fx700` (A64FX/aarch64) and `qc-gh200` + `ng-dgx-m*`\n(NVIDIA Grace/aarch64). A binary built for one architecture will not run on\nanother.",
     "id": 8
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Job Submission > Mandatory job script preamble",
-    "url": "https://cloud.r-ccs.riken.jp/en/#mandatory-job-script-preamble",
-    "text": "Every batch script must begin with:\n\n```bash\n#!/bin/bash\nsource /etc/profile\nmodule load system/<partition> <toolkit>\n```\n\n`source /etc/profile` initialises the module system. Omitting it means `module`\ncommands will not work.",
+    "breadcrumb": "R-CCS Cloud > Module loading",
+    "url": "",
+    "text": "Every partition ships its own `system/<partition>` module that sets up the\ncompilers, libraries, and paths for that hardware. **Load it first, and never\nload a system module belonging to a different partition** — a mismatched module\nsilently links the wrong libraries or fails at runtime.\n\n| Partition | Module command |\n|-----------|----------------|\n| fx700 | `module load system/fx700 FJSVstclanga` |\n| genoa, genoa-m | `module load system/genoa mpi/openmpi-x86_64` |\n| a100 | `module load system/a100 nvhpc` |\n| b300 | `module load system/b300 nvhpc` |\n| ai-h100l, ai-h100l-pu | `module load system/ai-h100l nvhpc` |\n| ai-h200-brc | `module load system/ai-h200-brc nvhpc` |\n| ai-l40s | `module load system/ai-l40s nvhpc` |\n| qc-a100 | `module load system/qc-a100 nvhpc` |\n| qc-h100 | `module load system/qc-h100 nvhpc` |\n| qc-gh200 | `module load system/qc-gh200 nvhpc` |\n| mi100 | `module load system/mi100 rocm` |\n| qc-mi210 | `module load system/qc-mi210 rocm` |\n| qc-mi250 | `module load system/qc-mi250 rocm` |\n| fs-mi300a | `module load system/fs-mi300a rocm` |\n| fs-mi300x | `module load system/fs-mi300x rocm` |\n| qc-pvc | `module load system/qc-pvc` (or `source /opt/intel/oneapi/setvars.sh`) |\n| ng-dgx-m[0-3] | `module load system/ng-dgx nvhpc` |\n| r340 | (none required) |\n\nPut the module load at the start of the job's command, e.g.\n`module load system/genoa mpi/openmpi-x86_64 && srun ./app`. After a system\nmodule is loaded, `module avail` shows the rest of the software for that\npartition.",
     "id": 9
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Job Submission > Minimal job script template",
-    "url": "https://cloud.r-ccs.riken.jp/en/#minimal-job-script-template",
-    "text": "```bash\n#!/bin/bash\n#SBATCH --job-name=myjob\n#SBATCH -p <partition>\n#SBATCH -N 1\n#SBATCH -t 01:00:00\n\nsource /etc/profile\nmodule load system/<partition> <toolkit>\n\nsrun ./myapp\n```",
+    "breadcrumb": "R-CCS Cloud > Job submission",
+    "url": "",
+    "text": "The scheduler is Slurm. A JobSpec is rendered into an sbatch script and\nsubmitted; the script is kept under `~/agent/jobs/` on the cluster so you can\ninspect exactly what ran.",
     "id": 10
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Job Submission > GPU allocation flags",
-    "url": "https://cloud.r-ccs.riken.jp/en/#gpu-allocation-flags",
-    "text": "Most GPU partitions require you to explicitly request GPUs:\n\n```bash\n#SBATCH --gpus=<number>    # e.g. --gpus=4\n```\n\nPartitions that **require** `--gpus=<n>`: `b300`, `ai-h200-brc`, `ai-l40s`,\n`qc-a100`.\n\nPartitions where `--gpus` is **not** needed (unified CPU+GPU superchips):\n`qc-gh200`, `ng-dgx-m[0–3]`.\n\nThe `a100`, `mi100`, `qc-mi250`, and similar partitions follow standard Slurm\nGPU resource conventions — confirm with `sinfo -p <partition>` if unsure.",
+    "breadcrumb": "R-CCS Cloud > Job submission > The mandatory preamble",
+    "url": "",
+    "text": "Every batch script must run `source /etc/profile` before any `module` command —\nthat is what makes `module` available, and a batch script's `#!/bin/bash` is not\na login shell that would source it automatically. **The plugin emits\n`source /etc/profile` for you**, immediately after the `#SBATCH` header, so do\nnot add it to the executable yourself.",
     "id": 11
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Job Submission > Submitting and checking status",
-    "url": "https://cloud.r-ccs.riken.jp/en/#submitting-and-checking-status",
-    "text": "```bash\nsbatch ./job.sh          # submit\nsqueue -u $USER          # your running/queued jobs\nscancel <job_id>         # cancel a job\n```",
+    "breadcrumb": "R-CCS Cloud > Job submission > GPU allocation",
+    "url": "",
+    "text": "GPUs are requested with `--gpus=<n>` (a job-total count), and `--nodes` is always\nstated explicitly. Set `resources.gpus` in the JobSpec to request them.\n\nThe unified CPU+GPU superchip partitions — **qc-gh200** and **ng-dgx-m[0-3]** —\ntake no GPU flag at all; the GPU is always present. Leave `resources.gpus` unset\nfor those; the plugin will not emit a GPU flag.",
     "id": 12
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Special Cases and Restrictions > OS differences: Rocky vs Ubuntu",
-    "url": "https://cloud.r-ccs.riken.jp/en/#os-differences-rocky-vs-ubuntu",
-    "text": "All partitions run **Rocky Linux** except `ng-dgx-m[0–3]`, which run **Ubuntu**.\nThis affects:\n- System library versions and paths\n- Available package managers and pre-installed software\n- Python environment setup\n\nDo not assume a binary or environment prepared on a Rocky node will work on\n`ng-dgx` without testing, or vice versa.",
+    "breadcrumb": "R-CCS Cloud > Job submission > Checking on work",
+    "url": "",
+    "text": "Use the agent's status tools rather than memorizing commands: recent jobs, a\nsingle job's normalized state and queue reason, and live per-partition node\noccupancy are all available. Job stdout defaults to\n`<workdir>/slurm-<job_id>.out`.",
     "id": 13
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Special Cases and Restrictions > Restricted partitions",
-    "url": "https://cloud.r-ccs.riken.jp/en/#restricted-partitions",
-    "text": "- **ai-h100l**: reserved exclusively for the \"High Performance Big Data Research\n  Team\" and \"Data Management Platform Development Unit\". Use `ai-h100l-pu`\n  instead if you have general access.\n- **ai-h100l-pu**: same physical nodes as ai-h100l, open to all users, but jobs\n  are limited to a maximum walltime of **30 minutes**.",
+    "breadcrumb": "R-CCS Cloud > Storage",
+    "url": "",
+    "text": "Home directories live under `/home/<user>` and are shared across login and\ncompute nodes. Agent-created files (job scripts, staged uploads) are biased into\n`~/agent/` so they are easy to find rather than scattered across `$HOME`.",
     "id": 14
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Special Cases and Restrictions > Partitions currently unavailable",
-    "url": "https://cloud.r-ccs.riken.jp/en/#partitions-currently-unavailable",
-    "text": "- **qc-h100**: under repair as of the last guide update. Check `sinfo -p qc-h100`\n  for current status.\n- **qc-mi210**: GPU configuration in progress. Not suitable for GPU workloads yet.",
+    "breadcrumb": "R-CCS Cloud > Special cases and restrictions",
+    "url": "",
+    "text": "- **ai-h100l** is reserved for the \"High Performance Big Data Research Team\" and\n  the \"Data Management Platform Development Unit\". General users should use\n  **ai-h100l-pu**, which is the same hardware but capped at a **30-minute**\n  walltime.\n- **qc-h100** is under repair, and **qc-mi210**'s GPUs are still being set up —\n  check live state before relying on either.\n- **ng-dgx-m[0-3]** runs **Ubuntu**; every other partition runs **Rocky Linux**.\n  A binary or Python wheel built on Rocky may not work on ng-dgx without a\n  rebuild, and vice versa.\n- **fs-mi300a** is an APU: CPU and GPU share a single 512 GB HBM pool, so there\n  is no separate host-memory budget to reason about.\n- **Networking**: only InfiniBand partitions suit tightly-coupled multi-node MPI.\n  Ethernet-only partitions (genoa, genoa-m, b300, the ai-* family, mi100, r340,\n  ng-dgx-m*) work for multi-node jobs but with much higher latency — prefer\n  single-node or loosely-coupled work there.",
     "id": 15
   },
   {
-    "breadcrumb": "R-CCS Cloud — User Guide > Special Cases and Restrictions > r340: cross-compilation for FX700",
-    "url": "https://cloud.r-ccs.riken.jp/en/#r340-cross-compilation-for-fx700",
-    "text": "The r340 node is a standard x86_64 Intel Xeon machine. It is available to\nmultiple users simultaneously and is intended as a cross-compilation environment\nfor code targeting the Fujitsu A64FX (fx700 partition). No system module is\nrequired on r340.",
+    "breadcrumb": "R-CCS Cloud > Common failure modes",
+    "url": "",
+    "text": "- **\"Exec format error\"** — an x86_64 binary was sent to an aarch64 partition\n  (fx700, qc-gh200, ng-dgx). Rebuild for the target architecture (cross-compile\n  fx700 code on r340).\n- **\"module: command not found\"** — `/etc/profile` was not sourced. The plugin\n  emits it automatically; if you see this, check the executable didn't override\n  the environment.\n- **Command not found / link errors after loading a module** — the wrong\n  `system/<partition>` module for the partition the job landed on. Match the\n  module to the partition.\n- **`native_state` OUT_OF_MEMORY** — reduce ranks, request `resources.memory`, or\n  move to a larger-memory partition (genoa-m).\n- **`native_state` TIMEOUT** — raise the job's `duration` (and remember\n  ai-h100l-pu caps at 30 minutes).\n- **GPU tools report no devices** — `resources.gpus` was not set on a partition\n  that needs `--gpus=<n>`, or it was set on a superchip partition where it\n  shouldn't be.\n- **Accounts** — no `--account` is required; jobs without one use your default\n  Slurm account.",
     "id": 16
-  },
-  {
-    "breadcrumb": "R-CCS Cloud — User Guide > Special Cases and Restrictions > fs-mi300a: unified CPU+GPU memory",
-    "url": "https://cloud.r-ccs.riken.jp/en/#fs-mi300a-unified-cpugpu-memory",
-    "text": "The MI300A is an APU where CPU and GPU share a single pool of HBM memory. There\nis no discrete host CPU memory — the 512 GB is the combined pool. This is\ndifferent from all other AMD GPU partitions and affects how you allocate and\ntransfer data.",
-    "id": 17
-  },
-  {
-    "breadcrumb": "R-CCS Cloud — User Guide > Special Cases and Restrictions > InfiniBand vs Ethernet partitions",
-    "url": "https://cloud.r-ccs.riken.jp/en/#infiniband-vs-ethernet-partitions",
-    "text": "Only partitions with InfiniBand are suited for tightly-coupled multi-node MPI\njobs. Ethernet-only partitions (`genoa`, `genoa-m`, `b300`, `ai-*`, `mi100`,\n`r340`, `ng-dgx-m[0–3]`) may be used for multi-node work but will see much\nhigher communication latency. Prefer single-node jobs or loosely-coupled\nworkflows on Ethernet-only partitions.",
-    "id": 18
   }
 ]

@@ -1,35 +1,113 @@
 {
-  "cluster": "rikyu_cluster",
-  "login_host": "login01.ai.r-ccs.riken.jp",
-  "architecture": "aarch64 (NVIDIA Grace)",
-  "gpu_type": "NVIDIA GB200",
-  "notes": [
-    "The partition name fixes the per-node resource share: GPUs, CPUs (36 per GPU), and memory (400GB per GPU).",
-    "Request GPUs with --gpus-per-node, not --gres.",
-    "Default wall time is 12 hours if --time is omitted; maximum is 96 hours except on 4n4gpu-p (unlimited).",
-    "Compute nodes have ~7TB local NVMe scratch at $USER_SCRATCH_DIR, deleted automatically when the job ends.",
-    "Slurm commands require a login shell environment.",
-    "Compute nodes are aarch64 — binaries and Python wheels built for x86_64 will not run."
-  ],
-  "partitions": [
-    {"name": "1n1gpu",   "default": true,  "max_nodes": 1, "gpus_per_node": 1, "cpus_per_node": 36,  "mem_per_node_gb": 400,  "max_time": "96:00:00", "qos": "gpu1"},
-    {"name": "1n2gpu",   "default": false, "max_nodes": 1, "gpus_per_node": 2, "cpus_per_node": 72,  "mem_per_node_gb": 800,  "max_time": "96:00:00", "qos": "gpu2"},
-    {"name": "1n4gpu",   "default": false, "max_nodes": 1, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu4"},
-    {"name": "2n4gpu",   "default": false, "max_nodes": 2, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu8"},
-    {"name": "4n4gpu",   "default": false, "max_nodes": 4, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu16"},
-    {"name": "4n4gpu-p", "default": false, "max_nodes": 4, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": null, "max_time": "unlimited", "qos": "gpu16"}
-  ],
-  "modules": {
-    "nvhpc": "Standard NVHPC environment",
-    "nvhpc-nompi": "NVHPC without MPI; use when you manage MPI yourself",
-    "nvhpc-hpcx": "NVHPC with InfiniBand and HPC-X",
-    "nvhpc-hpcx-cuda13": "NVHPC with HPC-X and CUDA 13 fixed",
-    "nvhpc-byo-compiler": "Use the system GCC (bring your own compiler)",
-    "cuda": "Bare CUDA toolkit (11.8 or 13.2)"
+  "machine": "RIKYU",
+  "site": "RIKEN Center for Computational Science (R-CCS)",
+  "status": "Early Access Phase 2 (scheduled through end of September 2026)",
+  "login": {
+    "ssh_host": "login.rikyu.r-ccs.riken.jp",
+    "methods": ["ssh", "open_ondemand"],
+    "key_registration": "Open OnDemand web portal -> launch 'SSH Public Key' -> paste public key under 'Add a Public Key'",
+    "recommended_key_types": ["ed25519", "ecdsa-nistp521", "rsa-2048-or-more"]
+  },
+  "scheduler": {
+    "type": "slurm",
+    "partitions": [
+      {
+        "name": "gpu",
+        "description": "The only partition; all 400 GB200 NVL4 compute nodes",
+        "nodes": 400,
+        "max_wall_time": "4-00:00:00"
+      }
+    ],
+    "default_partition": "gpu",
+    "gpu_request_style": "gpus_total",
+    "gpu_flag": "--gpus=N",
+    "nodes_derived_from_gpu_count": true,
+    "account_required": false
+  },
+  "compute_node": {
+    "model": "NVIDIA GB200 NVL4",
+    "cpu": "Grace CPU x2, LPDDR5X 960 GiB total (768 GB/s total, 384 GB/s per CPU)",
+    "gpu": "NVIDIA B200 x4, HBM3e 692.8 GiB total (173.2 GiB per GPU, 31.6 TB/s total)",
+    "gpus_per_node": 4,
+    "gpu_gpu_bandwidth": "NVLink, 600 GB/s bidirectional",
+    "cpu_gpu_bandwidth": "NVLink-C2C, 450 GB/s bidirectional (cache-coherent - CPU and GPU can access each other's memory)",
+    "interconnect": "InfiniBand XDR, 800 Gbps x4 per node; two-layer Fat Tree (6 spine switches, 17 leaf switches; 16 leaves x24 nodes + 1 leaf x16 nodes)",
+    "local_scratch_per_node": "Kioxia XD7P NVMe SSD, 7.68 TB, ~7.2 GB/s read / 4.8 GB/s write"
+  },
+  "system_totals": {
+    "compute_nodes": 400,
+    "gpus_total": 1600,
+    "fp64_performance": "64.160 PFLOPS",
+    "fp8_performance": "15.539 EFLOPS",
+    "high_speed_storage": "2 PB SSD",
+    "large_capacity_storage": "10 PB HDD"
+  },
+  "job_resources": {
+    "supported_gpu_counts": [1, 2, 3, 4, 8, 12, 16],
+    "max_wall_time": "96:00:00",
+    "note": "Node count, max CPU cores/node, and max memory/node all follow deterministically from the requested GPU count (4 GPUs/node) - see table.",
+    "table": [
+      {"gpus": 1, "nodes": 1, "max_cpu_cores_per_node": 36, "max_mem_per_node_gb": 400},
+      {"gpus": 2, "nodes": 1, "max_cpu_cores_per_node": 72, "max_mem_per_node_gb": 800},
+      {"gpus": 3, "nodes": 1, "max_cpu_cores_per_node": 108, "max_mem_per_node_gb": 1200},
+      {"gpus": 4, "nodes": 1, "max_cpu_cores_per_node": 144, "max_mem_per_node_gb": 1600},
+      {"gpus": 8, "nodes": 2, "max_cpu_cores_per_node": 144, "max_mem_per_node_gb": 1600},
+      {"gpus": 12, "nodes": 3, "max_cpu_cores_per_node": 144, "max_mem_per_node_gb": 1600},
+      {"gpus": 16, "nodes": 4, "max_cpu_cores_per_node": 144, "max_mem_per_node_gb": 1600}
+    ]
   },
   "storage": {
-    "home": "/home/<user>",
-    "node_local_scratch": "$USER_SCRATCH_DIR (~7TB NVMe, deleted after the job ends)"
+    "home": {
+      "path": "/home/USER",
+      "quota": "5 GB",
+      "quota_note": "5 GB is genuinely small — dotfiles, small scripts, and configuration only. Anything resembling a dataset, checkpoint, or build output belongs in the group area (/data1/GROUP, 1 TB) instead. Confirm live with the check_quota_cmd below if in doubt, rather than assuming.",
+      "filesystem": "Lustre",
+      "backing": "2 PB SSD tier",
+      "shared_across_nodes": true,
+      "access": "owner only",
+      "check_quota_cmd": "lfs quota -h -p `lfs project -d $HOME | awk '{print $1}'` /home"
+    },
+    "group": {
+      "path": "/data1/GROUP",
+      "quota": "1 TB per group",
+      "filesystem": "Lustre",
+      "backing": "10 PB HDD tier",
+      "shared_across_nodes": true,
+      "access": "members of the same group",
+      "find_group_name_cmd": "id",
+      "check_quota_cmd": "lfs quota -h -p `lfs project -d /data1/GROUP | awk '{print $1}'` /data1"
+    },
+    "scratch": {
+      "path": "/tmp",
+      "quota": "1.5 TB per GPU",
+      "filesystem": "xfs",
+      "backing": "node-local NVMe SSD",
+      "shared_across_nodes": false,
+      "access": "owner only, from the node running the job",
+      "purged": "deleted when the job finishes - copy results out before the job ends"
+    }
   },
-  "support": "rccs-ai4s-support [at] ml.riken.jp"
+  "modules": {
+    "system": "Lmod (environment-modules)",
+    "location": "/shared/software/modulefiles",
+    "provider": "NVIDIA HPC Software Development Kit",
+    "available": [
+      {"name": "nvhpc", "description": "Standard NVIDIA HPC SDK environment including MPI"},
+      {"name": "nvhpc-nompi", "description": "NVIDIA HPC SDK without MPI, for bringing your own MPI"},
+      {"name": "nvhpc-hpcx", "description": "nvhpc combined with HPC-X, for HPC-X MPI over InfiniBand/RDMA"},
+      {"name": "nvhpc-hpcx-cuda13", "description": "Same as nvhpc-hpcx but with CUDA version fixed to CUDA 13"},
+      {"name": "nvhpc-byo-compiler", "description": "Bring-your-own compiler environment (e.g. system GCC)"}
+    ],
+    "note": "Exact versions (e.g. 26.3) change over time - query live with 'module avail' rather than hardcoding a version."
+  },
+  "spack": {
+    "public_instance_setup_bash_zsh": ". /shared/software/spack-1.2.0/share/spack/setup-env.sh",
+    "public_instance_setup_csh_tcsh": "source /shared/software/spack-1.2.0/share/spack/setup-env.csh",
+    "find_prebuilt_cmd": "spack find -x",
+    "load_cmd": "spack load <package>",
+    "gpu_enabled_packages": ["petsc", "lammps", "quantum-espresso", "gromacs", "kokkos"],
+    "hpcx_mpi_packages": ["quantum-espresso", "gromacs"],
+    "note": "GPU-enabled software list can be updated by the system - always confirm with 'spack find -x' rather than trusting this static list alone. Loading a GPU package does not itself allocate GPUs - request them in the Slurm job (#SBATCH --gpus=N)."
+  },
+  "account_application": "RIKYU Account Application System (RAAS); Early Access Phase 2 is available to ARiSE users, members of accepted SPReAD1000 projects, and RIKEN members."
 }

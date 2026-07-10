@@ -16,7 +16,7 @@ if [ ! -x "$VENV/bin/python" ]; then
     python3 -m venv "$VENV" >&2
     "$VENV/bin/pip" install --quiet --upgrade pip >&2
 fi
-if ! "$VENV/bin/python" -c "import cloud_mcp, mcp, remotemanager" >/dev/null 2>&1; then
+if ! "$VENV/bin/python" -c "import cloud_mcp, hpc_agent_core" >/dev/null 2>&1; then
     "$VENV/bin/pip" install --quiet -e "$DIR" >&2
 fi
 

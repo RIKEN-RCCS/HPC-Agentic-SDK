@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rikyu-mcp"
-version = "0.2.20"
+version = "0.4.1"
 description = "MCP servers for the RIKEN Rikyu supercomputer: Slurm interaction and documentation search."
 requires-python = ">=3.10"
 dependencies = [
-    "mcp",
-    "remotemanager",
-    "httpx",
-    "numpy",
+    # Pinned to a compatible range, not left open — see PORTING.md §9.
+    # Re-check `pip index versions hpc-agent-core` before bumping the ceiling.
+    # Needs >=0.4 for SchedulerBackend.get_live_resources()/get_drained_nodes().
+    "hpc-agent-core>=0.4,<0.5",
 ]
 
 [project.scripts]
@@ -25,5 +25,6 @@ include = ["rikyu_mcp*"]
 [tool.setuptools.package-data]
 rikyu_mcp = [
     "data/*.json",
+    "data/*.md",
     "data/docs_index/*",
 ]

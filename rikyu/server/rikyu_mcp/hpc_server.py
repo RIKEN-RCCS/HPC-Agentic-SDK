@@ -1,175 +1,105 @@
-"""MCP server for the Rikyu supercomputer, modeled on the IRI Facility API.
-
-Tool groups mirror the IRI resource groups (facility, status, compute,
-filesystem); each operation is executed on the Rikyu login node over SSH via
-remotemanager, since Rikyu does not expose a REST facility API itself.
-Coverage of the full API is tracked in IRI_CHECKLIST.md at the repo root.
+"""RIKYU's MCP tool surface — the IRI-grouped submit/status/cancel,
+filesystem, and facility/resource tools. Mostly a thin pass-through to
+compute.py and hpc_agent_core.middleware; see PORTING.md §7 and this repo's
+IRI_CHECKLIST.md for what's implemented, deferred, or extended beyond spec.
 """
 import shlex
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from hpc_agent_core import middleware
+from hpc_agent_core.middleware import quote_path, run_command
+from hpc_agent_core.models import CompressionType, Job, JobSpec
+from hpc_agent_core.serving import serve
 from rikyu_mcp import compute, config
-from rikyu_mcp.middleware import (
-    download_file,
-    quote_path,
-    run_command,
-    upload_file,
-    write_remote_file,
-)
-from rikyu_mcp.models import CompressionType, Job, JobSpec
-from rikyu_mcp.serving import serve
 
 mcp = FastMCP("rikyu-hpc")
 
-RESOURCE_ID = "rikyu"
+_TAR_FLAGS = {
+    CompressionType.NONE: "cf",
+    CompressionType.GZIP: "czf",
+    CompressionType.BZIP2: "cjf",
+    CompressionType.XZ: "cJf",
+}
 
 
-def _check_resource(resource_id: str) -> None:
-    if resource_id != RESOURCE_ID:
-        raise ValueError(f"Unknown resource '{resource_id}'; this server manages '{RESOURCE_ID}'")
-
-
-# === facility ================================================================
+# ---------------------------------------------------------------------------
+# Facility / resource info
+# ---------------------------------------------------------------------------
 
 @mcp.tool()
 def get_facility() -> dict:
-    """Describe the Rikyu facility: partitions, modules, storage, conventions.
-
-    Static reference data (no SSH round-trip). On Rikyu the partition name
-    fixes the per-node resource share; jobs request GPUs with
-    --gpus-per-node. (IRI: GET /facility)
-    """
+    """Static RIKYU facility facts: the gpu partition, the GPU-count ->
+    node/CPU/memory table, storage tiers, modules, and Spack. (IRI: GET /facility)"""
     return config.load_cluster_config()
 
 
-# === status ==================================================================
-
 @mcp.tool()
 def get_resources() -> list[dict]:
-    """List compute resources and their live state. (IRI: GET /status/resources)
-
-    Returns the Rikyu resource with a per-partition node-state summary
-    (allocated/idle/other/total) from sinfo.
+    """Live occupancy for RIKYU's compute partitions ("resources" in IRI
+    terms) via sinfo — allocated/idle/other/total node counts, i.e. "will a
+    job start soon". RIKYU has exactly one partition, "gpu", covering all
+    400 nodes, but the occupancy numbers themselves change constantly, so
+    this is a live query (hpc_agent_core's SlurmBackend.get_live_resources),
+    not the static rikyu_config.json get_facility reads from.
+    (IRI: GET /resources)
     """
-    return [_resource_detail()]
+    return compute.get_live_resources()
 
 
 @mcp.tool()
-def get_resource(resource_id: str = RESOURCE_ID) -> dict:
-    """Get detailed state for a single resource. (IRI: GET /status/resources/{resource_id})
-
-    Includes per-partition node counts and any drained/draining nodes with
-    their reasons (from sinfo -R).
-    """
-    _check_resource(resource_id)
-    return _resource_detail(include_drain=True)
-
-
-def _resource_detail(include_drain: bool = False) -> dict:
-    summary = run_command("sinfo --summarize --format='%P|%a|%l|%F'")
-    partitions = []
-    for line in summary.strip().splitlines():
-        parts = line.split("|")
-        if len(parts) != 4 or parts[0] == "PARTITION":
-            continue
-        alloc, idle, other, total = parts[3].split("/")
-        partitions.append({
-            "partition": parts[0].rstrip("*"),
-            "available": parts[1],
-            "time_limit": parts[2],
-            "nodes": {"allocated": int(alloc), "idle": int(idle),
-                      "other": int(other), "total": int(total)},
-        })
-    resource: dict = {
-        "id": RESOURCE_ID,
-        "type": "compute",
-        "description": "RIKEN Rikyu supercomputer (NVIDIA GB200, aarch64)",
-        "partitions": partitions,
-    }
-    if include_drain:
-        drain = run_command("sinfo -R --format='%N|%T|%E' --noheader")
-        drained = []
-        for line in drain.strip().splitlines():
-            parts = line.split("|", 2)
-            if len(parts) == 3:
-                drained.append({"nodes": parts[0], "state": parts[1], "reason": parts[2]})
-        resource["drained_nodes"] = drained
-    return resource
-
-
-# === account =================================================================
-
-def _parse_projects(output: str) -> list[dict]:
-    # Default sacctmgr column order (--parsable2, no --format):
-    # Cluster|Account|User|Partition|Share|Priority|...(12 more)...|QOS|Def QOS|GrpTRESRunMins
-    projects = []
-    for line in output.strip().splitlines():
-        parts = line.split("|")
-        if len(parts) < 18 or parts[0] == "Cluster":
-            continue
-        projects.append({
-            "id": parts[1],       # Account name — used as JobAttributes.account
-            "cluster": parts[0],
-            "user": parts[2],
-            "qos": parts[17] or None,
-        })
-    return projects
-
-
-@mcp.tool()
-def get_projects() -> list[dict]:
-    """List projects (Slurm accounts) the current user belongs to.
-    (IRI: GET /account/projects)
-
-    Each project has an id (account name) used in JobAttributes.account.
-    """
-    output = run_command(
-        "sacctmgr show associations user=$USER --parsable2 --noheader"
-    )
-    return _parse_projects(output)
-
-
-@mcp.tool()
-def get_project(project_id: str) -> dict:
-    """Get details for a single project (Slurm account).
-    (IRI: GET /account/projects/{id})
-    """
-    projects = get_projects()
-    for p in projects:
-        if p["id"] == project_id:
+def get_resource(name: str) -> dict:
+    """Live occupancy for one named partition. (IRI: GET /resources/{name})"""
+    for p in compute.get_live_resources():
+        if p["partition"] == name:
             return p
-    raise ValueError(f"Project '{project_id}' not found for current user")
+    raise ValueError(f"No resource named {name!r} — RIKYU's only partition is 'gpu'")
 
-
-# === compute =================================================================
 
 @mcp.tool()
-def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
-    """Submit a job described by a JobSpec. (IRI: POST /compute/job/{resource_id})
+def get_drained_nodes() -> list[dict]:
+    """Nodes currently drained/down and why, via sinfo -R (extension — not
+    an IRI endpoint, but directly useful for "why won't my job start")."""
+    return compute.get_drained_nodes()
 
-    The spec is rendered as an sbatch script (kept under ~/.rikyu/jobs/ on
-    the cluster for auditability) and submitted. Returns the job_id and the
-    script path. Rikyu notes: attributes.queue_name picks the partition,
-    which fixes the per-node resource share; resources.gpus_per_node must
-    not exceed that share; executable may be a shell line such as
-    'module load nvhpc && srun ./app'.
+
+# ---------------------------------------------------------------------------
+# Job submit / status / cancel / update
+# ---------------------------------------------------------------------------
+
+def _validate_gpu_count(spec: JobSpec) -> None:
+    """RIKYU only accepts these GPU counts per job (Job Resources guide
+    page) — everything else about the resource ceiling (node count, CPU
+    cores, memory) follows deterministically from this count, so a bad
+    count is worth catching before submission rather than as a confusing
+    sbatch-time rejection."""
+    gpus = spec.resources.gpus or spec.resources.gpu_cores_per_process
+    if not gpus:
+        return
+    supported = config.load_cluster_config()["job_resources"]["supported_gpu_counts"]
+    if gpus not in supported:
+        raise ValueError(
+            f"RIKYU only accepts these GPU counts per job: {supported}. Got {gpus}."
+        )
+
+
+@mcp.tool()
+def submit_job(spec: JobSpec) -> dict:
+    """Submit a job to RIKYU's Slurm scheduler. Show the user the spec
+    before submitting unless they asked to just run it (mirrors
+    run_command_on_cluster's rule below). If spec.attributes.queue_name is
+    left blank, it defaults to RIKYU's only partition, "gpu". (IRI: POST /compute/job)
     """
-    _check_resource(resource_id)
+    if not spec.attributes.queue_name:
+        spec.attributes.queue_name = "gpu"
+    _validate_gpu_count(spec)
     return compute.submit(spec)
 
 
 @mcp.tool()
-def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
-    """Get the normalized status of one job. (IRI: GET /compute/status/...)
-
-    state is the normalized IRI state (QUEUED/ACTIVE/COMPLETED/FAILED/
-    CANCELED); native_state is Slurm's. For queued jobs, reason explains
-    the wait. Job stdout defaults to <workdir>/slurm-<job_id>.out — read it
-    with fs_tail or fs_view.
-    """
-    _check_resource(resource_id)
+def get_job_status(job_id: str) -> Job:
+    """Status of a single job. (IRI: GET /compute/job/{job_id})"""
     jobs = compute.get_statuses([job_id])
     if not jobs:
         raise ValueError(f"Job {job_id} not found")
@@ -177,261 +107,152 @@ def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
 
 
 @mcp.tool()
-def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list[Job]:
-    """Get statuses for several jobs at once, or recent jobs when job_ids is
-    empty. (IRI: POST /compute/status/{resource_id})
-    """
-    _check_resource(resource_id)
-    if job_ids:
-        return compute.get_statuses(job_ids)
-    # No IDs given: current user's jobs from the last two days.
-    return compute.get_recent_statuses()
+def get_job_statuses(job_ids: list[str]) -> list[Job]:
+    """Status of several jobs, or — if job_ids is empty — every job the
+    current user has touched in roughly the last two days (RIKYU has Slurm
+    accounting, so this includes finished jobs, not just the live queue).
+    (IRI: GET /compute/jobs)"""
+    return compute.get_statuses(job_ids) if job_ids else compute.get_recent_statuses()
 
 
 @mcp.tool()
-def update_job(
-    job_id: str,
-    time_limit: str | None = None,
-    name: str | None = None,
-    partition: str | None = None,
-    account: str | None = None,
-    reservation: str | None = None,
-    resource_id: str = RESOURCE_ID,
-) -> Job:
-    """Update a queued or running job. (IRI: PUT /compute/job/{resource_id}/{job_id})
-
-    All fields are optional — only supplied ones are changed.
-    time_limit: new wall time as HH:MM:SS or D-HH:MM:SS (works on running jobs too).
-    partition, account, reservation: only valid while the job is still queued.
-    """
-    _check_resource(resource_id)
-    mapping = {
-        "TimeLimit": time_limit,
-        "Name": name,
-        "Partition": partition,
-        "Account": account,
-        "Reservation": reservation,
-    }
-    updates = " ".join(f"{k}={shlex.quote(v)}" for k, v in mapping.items() if v is not None)
-    if not updates:
-        raise ValueError("No fields to update — supply at least one argument")
-    run_command(f"scontrol update job {shlex.quote(job_id)} {updates}")
-    jobs = compute.get_statuses([job_id])
-    if not jobs:
-        raise ValueError(f"Job {job_id} not found after update")
-    return jobs[0]
-
-
-@mcp.tool()
-def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> Job | str:
-    """Cancel a queued or running job and report its resulting state.
-    (IRI: DELETE /compute/cancel/{resource_id}/{job_id})
-    """
-    _check_resource(resource_id)
+def cancel_job(job_id: str) -> Job | str:
+    """Cancel a queued or running job via scancel. (IRI: DELETE /compute/job/{job_id})"""
     return compute.cancel(job_id)
 
 
-# === filesystem ==============================================================
-# Paths are relative to the home directory unless absolute.
+@mcp.tool()
+def update_job(job_id: str, updates: dict[str, str]) -> str:
+    """Modify an already-submitted job's Slurm attributes via `scontrol
+    update`, e.g. {"TimeLimit": "02:00:00"} to extend the wall time. Only
+    affects jobs still queued or running, and is subject to Slurm's own
+    permission rules (some fields can only be lowered, not raised, by a
+    non-admin). (IRI: PUT /compute/job/{job_id})
+    """
+    assignments = " ".join(f"{k}={shlex.quote(v)}" for k, v in updates.items())
+    return run_command(f"scontrol update JobId={shlex.quote(job_id)} {assignments}")
+
 
 @mcp.tool()
-def fs_ls(path: str = ".", show_hidden: bool = False) -> str:
-    """List a directory on the cluster. (IRI: GET /filesystem/ls)"""
-    flags = "-la" if show_hidden else "-l"
-    return run_command(f"ls {flags} {quote_path(path)}")
+def run_command_on_cluster(command: str) -> str:
+    """Run an arbitrary shell command on the login node (extension — not an
+    IRI endpoint). Before calling this, show the user the exact command (or
+    script) and a one-line explanation of what it does, then call it — skip
+    the preview only if the user explicitly asked to just run something. Do
+    not run heavy computation on the login node — submit a job instead.
+    """
+    return run_command(command)
+
+
+# ---------------------------------------------------------------------------
+# Filesystem operations
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def fs_ls(path: str = ".") -> str:
+    """List a directory's contents (long form). (IRI: GET /filesystem/ls)"""
+    return run_command(f"ls -la {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_stat(path: str) -> str:
-    """Stat a file or directory on the cluster. (IRI: GET /filesystem/stat)"""
+    """File/directory metadata: size, permissions, timestamps, owner. (IRI: GET /filesystem/stat)"""
     return run_command(f"stat {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_view(path: str) -> str:
-    """Read a whole text file on the cluster (output capped at 200KB).
-    (IRI: GET /filesystem/view) For large files use fs_head/fs_tail.
-    """
+    """Read a whole text file's contents. (IRI: GET /filesystem/view)"""
     return run_command(f"cat {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_head(path: str, lines: int = 50) -> str:
-    """Read the first lines of a file on the cluster. (IRI: GET /filesystem/head)"""
+def fs_head(path: str, lines: int = 20) -> str:
+    """Read the first N lines of a file. (IRI: GET /filesystem/head)"""
     return run_command(f"head -n {int(lines)} {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_tail(path: str, lines: int = 50) -> str:
-    """Read the last lines of a file on the cluster — e.g. a job's
-    slurm-<job_id>.out. (IRI: GET /filesystem/tail)
-    """
+def fs_tail(path: str, lines: int = 20) -> str:
+    """Read the last N lines of a file — useful for checking a running
+    job's stdout/stderr. (IRI: GET /filesystem/tail)"""
     return run_command(f"tail -n {int(lines)} {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_mkdir(path: str) -> str:
-    """Create a directory (and parents) on the cluster. (IRI: POST /filesystem/mkdir)"""
-    quoted = quote_path(path)
-    return run_command(f"mkdir -p {quoted} && echo created: $(realpath {quoted})")
+    """Create a directory, including parents as needed. (IRI: POST /filesystem/mkdir)"""
+    return run_command(f"mkdir -p {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_upload(path: str, local_path: str) -> dict:
-    """Upload a local file to the cluster. (IRI: POST /filesystem/upload)
+def fs_upload(local_path: str, remote_path: str) -> dict:
+    """Upload a local file to RIKYU via rsync (falling back to scp), with a
+    SHA-256 verification of the transfer. (IRI: POST /filesystem/upload)"""
+    return middleware.upload_file(Path(local_path), remote_path)
 
-    Transfers local_path → path on the cluster via rsync or scp.
-    Creates remote parent directories as needed. No size limit.
-    Returns {remote_path, bytes, sha256, verified, transport}.
-    """
-    return upload_file(Path(local_path), path)
+
+@mcp.tool()
+def fs_download(remote_path: str, local_path: str) -> dict:
+    """Download a file from RIKYU via rsync (falling back to scp), with a
+    SHA-256 verification of the transfer. (IRI: GET /filesystem/download)"""
+    return middleware.download_file(remote_path, Path(local_path))
 
 
 @mcp.tool()
 def fs_checksum(path: str) -> str:
-    """SHA-256 checksum of a file on the cluster. (IRI: GET /filesystem/checksum)"""
+    """SHA-256 checksum of a remote file. (IRI: GET /filesystem/checksum)"""
     return run_command(f"sha256sum {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_download(path: str, local_path: str | None = None) -> dict:
-    """Download a file from the cluster to local disk. (IRI: GET /filesystem/download ⚠ deviation)
-
-    Transfers path → local_path via rsync or scp. No size limit.
-    local_path defaults to the filename in the current working directory.
-    Returns {local_path, bytes, sha256, verified, transport}.
-    Deliberately deviates from the IRI base64 shape — see IRI_CHECKLIST.md.
-    """
-    dest = Path(local_path) if local_path else Path.cwd() / Path(path).name
-    return download_file(path, dest)
+def fs_cp(source: str, dest: str, recursive: bool = False) -> str:
+    """Copy a file or (with recursive=True) a directory tree on the
+    cluster. (IRI: POST /filesystem/cp)"""
+    flag = "-r " if recursive else ""
+    return run_command(f"cp {flag}{quote_path(source)} {quote_path(dest)}")
 
 
 @mcp.tool()
-def fs_cp(src: str, dst: str) -> str:
-    """Copy a file or directory on the cluster. (IRI: POST /filesystem/cp)
-
-    Uses cp -r so it works for both files and directories.
-    """
-    return run_command(f"cp -r {quote_path(src)} {quote_path(dst)} && echo ok")
-
-
-@mcp.tool()
-def fs_mv(src: str, dst: str) -> str:
-    """Move or rename a file or directory on the cluster. (IRI: POST /filesystem/mv)
-
-    Destructive — the source path will no longer exist after this call.
-    """
-    return run_command(f"mv {quote_path(src)} {quote_path(dst)} && echo ok")
+def fs_mv(source: str, dest: str) -> str:
+    """Move or rename a file/directory on the cluster. (IRI: POST /filesystem/mv)"""
+    return run_command(f"mv {quote_path(source)} {quote_path(dest)}")
 
 
 @mcp.tool()
 def fs_chmod(path: str, mode: str) -> str:
-    """Change file permissions on the cluster. (IRI: PUT /filesystem/chmod)
-
-    mode is an octal string, e.g. '755' or '644'.
-    """
-    return run_command(f"chmod {shlex.quote(mode)} {quote_path(path)} && echo ok")
+    """Change a file/directory's permissions, e.g. mode="755". (IRI: POST /filesystem/chmod)"""
+    return run_command(f"chmod {shlex.quote(mode)} {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_chown(path: str, owner: str = "", group: str = "") -> str:
-    """Change file ownership on the cluster. (IRI: PUT /filesystem/chown)
-
-    Supply owner, group, or both. Normal users can only change group to one
-    they belong to; changing owner requires root.
-    """
-    if not owner and not group:
-        raise ValueError("Provide at least one of owner or group")
-    spec = owner + (":" + group if group else "")
-    return run_command(f"chown {shlex.quote(spec)} {quote_path(path)} && echo ok")
+def fs_chown(path: str, owner: str) -> str:
+    """Change a file/directory's owner (and optionally group, as
+    "user:group"). Most users can only chown within their own group's
+    permissions — Slurm/Lustre still enforces the actual ACL. (IRI: POST /filesystem/chown)"""
+    return run_command(f"chown {shlex.quote(owner)} {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_symlink(path: str, link_path: str) -> str:
-    """Create a symbolic link on the cluster. (IRI: POST /filesystem/symlink)
-
-    path is the target; link_path is the new symlink to create.
-    """
-    return run_command(
-        f"ln -s {quote_path(path)} {quote_path(link_path)} && echo ok"
-    )
-
-
-_COMPRESSION_FLAGS = {
-    CompressionType.NONE: "",
-    CompressionType.GZIP: "z",
-    CompressionType.BZIP2: "j",
-    CompressionType.XZ: "J",
-}
+def fs_symlink(target: str, link_name: str) -> str:
+    """Create a symbolic link at link_name pointing to target. (IRI: POST /filesystem/symlink)"""
+    return run_command(f"ln -s {quote_path(target)} {quote_path(link_name)}")
 
 
 @mcp.tool()
-def fs_compress(
-    target_path: str,
-    path: str | None = None,
-    match_pattern: str | None = None,
-    dereference: bool = False,
-    compression: CompressionType = CompressionType.GZIP,
-) -> str:
-    """Create an archive on the cluster. (IRI: POST /filesystem/compress)
-
-    target_path: path of the archive to create.
-    path: source file or directory (defaults to current directory).
-    match_pattern: regex passed to find -regex to filter files.
-    dereference: follow symlinks (-h).
-    compression: gzip (default), bzip2, xz, or none.
-    """
-    flag = _COMPRESSION_FLAGS[compression]
-    deref = "h" if dereference else ""
-    tar_flags = f"-{deref}c{flag}f"
-
-    if match_pattern:
-        src = quote_path(path or ".")
-        pattern = shlex.quote(match_pattern)
-        cmd = (
-            f"find {src} -regex {pattern} -print0 | "
-            f"tar {tar_flags} {quote_path(target_path)} --null -T -"
-        )
-    else:
-        src = quote_path(path or ".")
-        cmd = f"tar {tar_flags} {quote_path(target_path)} {src}"
-
-    return run_command(cmd + " && echo ok")
+def fs_compress(paths: list[str], archive_path: str,
+                 compression: CompressionType = CompressionType.GZIP) -> str:
+    """Create a tar archive from one or more remote paths. (IRI: POST /filesystem/compress)"""
+    flag = _TAR_FLAGS[compression]
+    quoted_paths = " ".join(quote_path(p) for p in paths)
+    return run_command(f"tar -{flag} {quote_path(archive_path)} {quoted_paths}")
 
 
 @mcp.tool()
-def fs_extract(
-    path: str,
-    target_path: str,
-    compression: CompressionType = CompressionType.GZIP,
-) -> str:
-    """Extract an archive on the cluster. (IRI: POST /filesystem/extract)
-
-    path: archive file to extract.
-    target_path: directory to extract into (created if absent).
-    compression: gzip (default), bzip2, xz, or none.
-    """
-    flag = _COMPRESSION_FLAGS[compression]
-    tar_flags = f"-x{flag}f"
-    return run_command(
-        f"mkdir -p {quote_path(target_path)} && "
-        f"tar {tar_flags} {quote_path(path)} -C {quote_path(target_path)} && echo ok"
-    )
-
-
-# === extensions (not part of the IRI API) ====================================
-
-@mcp.tool()
-def run_command_on_cluster(command: str) -> str:
-    """Run an arbitrary shell command on the Rikyu login node (extension —
-    not an IRI endpoint).
-
-    Use only when no dedicated tool fits, e.g. checking GPU usage on a
-    job's node with 'srun --overlap --jobid <id> nvidia-smi'. Runs under a
-    login shell from the home directory; returns stdout+stderr. Do not run
-    heavy computation on the login node — submit a job instead.
-    """
-    return run_command(command)
+def fs_extract(archive_path: str, dest_dir: str = ".") -> str:
+    """Extract an archive on the cluster into dest_dir (created if needed).
+    Compression format is auto-detected by tar. (IRI: POST /filesystem/extract)"""
+    return run_command(f"mkdir -p {quote_path(dest_dir)} && tar -xf {quote_path(archive_path)} -C {quote_path(dest_dir)}")
 
 
 def main():

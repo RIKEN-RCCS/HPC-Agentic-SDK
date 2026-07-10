@@ -1,177 +1,197 @@
-"""MCP server for HOKUSAI BigWaterfall2 (HBW2), modeled on the IRI Facility API.
+"""HBW2's MCP tool surface, grouped around the IRI Facility API.
 
-Tool groups mirror the IRI resource groups (facility, status, compute,
-filesystem); each operation is executed on the HBW2 front-end node over SSH via
-remotemanager, since HBW2 does not expose a REST facility API itself.
-Coverage of the full API is tracked in IRI_CHECKLIST.md at the repo root.
+This is the one piece hpc-agent-core does not provide generically — each
+tool is a short pass-through to `compute.py` (the SlurmBackend) or to
+`hpc_agent_core.middleware` (the SSH layer). See IRI_CHECKLIST.md for which
+IRI endpoints are implemented, deferred, or extended.
+
+Two standing invariants (PORTING.md §10) shape this file:
+  * Nothing above module scope touches the network or reads config eagerly —
+    the server must never fail to start just because config is missing.
+    `middleware`/`compute` are already lazy; we don't defeat that here.
+  * "Show before you run": before submit_job / run_command_on_cluster
+    actually executes, the agent shows the user the JobSpec (see
+    render_job_script) or the exact command and a one-line explanation,
+    unless the user said to just run it. That is a behavioral rule the
+    skills enforce; the tool docstrings restate it.
 """
-import shlex
-from pathlib import Path
-
 from mcp.server.fastmcp import FastMCP
 
-from hokusai_mcp import compute, config
-from hokusai_mcp.middleware import (
+from hpc_agent_core.middleware import (
     download_file,
     quote_path,
     run_command,
     upload_file,
-    write_remote_file,
 )
-from hokusai_mcp.models import CompressionType, Job, JobSpec
-from hokusai_mcp.serving import serve
+from hpc_agent_core.models import CompressionType, Job, JobSpec
+from hpc_agent_core.serving import serve
+from hokusai_mcp import compute, config
 
 mcp = FastMCP("hokusai-hpc")
 
-RESOURCE_ID = "hokusai"
 
-
-def _check_resource(resource_id: str) -> None:
-    if resource_id != RESOURCE_ID:
-        raise ValueError(f"Unknown resource '{resource_id}'; this server manages '{RESOURCE_ID}'")
-
-
-# === facility ================================================================
+# ---------------------------------------------------------------------------
+# Facility & resources (IRI: GET /facility, GET /resources)
+# ---------------------------------------------------------------------------
 
 @mcp.tool()
 def get_facility() -> dict:
-    """Describe the HBW2 facility: subsystems, partitions, modules, storage, conventions.
+    """Static HBW2 facility facts: subsystems (MPC/LMC/GPU), partitions and
+    their limits, storage tiers, the module/MPI story, and the GPU dialect.
+    (IRI: GET /facility)
 
-    Static reference data (no SSH round-trip). HBW2 is a CPU-first system; the
-    MPC (and large-memory LMC) carry the bulk of the work, with a small GPU
-    server for postprocessing. (IRI: GET /facility)
-    """
+    This is the stable hardware description. For "will a job start soon"
+    use get_resources, which reads the live scheduler."""
     return config.load_cluster_config()
 
 
-# === status ==================================================================
-
 @mcp.tool()
 def get_resources() -> list[dict]:
-    """List compute resources and their live state. (IRI: GET /status/resources)
-
-    Returns the HBW2 resource with a per-partition node-state summary
-    (allocated/idle/other/total) from sinfo.
-    """
-    return [_resource_detail()]
+    """Live per-partition node occupancy (allocated / idle / other / total)
+    via the scheduler — the "where will my job start soonest" view, as
+    opposed to get_facility's static description. (IRI: GET /resources)"""
+    return compute.get_live_resources()
 
 
 @mcp.tool()
-def get_resource(resource_id: str = RESOURCE_ID) -> dict:
-    """Get detailed state for a single resource. (IRI: GET /status/resources/{resource_id})
-
-    Includes per-partition node counts and any drained/draining nodes with
-    their reasons (from sinfo -R).
-    """
-    _check_resource(resource_id)
-    return _resource_detail(include_drain=True)
-
-
-def _resource_detail(include_drain: bool = False) -> dict:
-    summary = run_command("sinfo --summarize --format='%P|%a|%l|%F'")
-    partitions = []
-    for line in summary.strip().splitlines():
-        parts = line.split("|")
-        if len(parts) != 4 or parts[0] == "PARTITION":
-            continue
-        alloc, idle, other, total = parts[3].split("/")
-        partitions.append({
-            "partition": parts[0].rstrip("*"),
-            "available": parts[1],
-            "time_limit": parts[2],
-            "nodes": {"allocated": int(alloc), "idle": int(idle),
-                      "other": int(other), "total": int(total)},
-        })
-    resource: dict = {
-        "id": RESOURCE_ID,
-        "type": "compute",
-        "description": "RIKEN HOKUSAI BigWaterfall2 (Intel Xeon, x86_64; CPU-first with a small H100 GPU server)",
-        "partitions": partitions,
-    }
-    if include_drain:
-        drain = run_command("sinfo -R --format='%N|%T|%E' --noheader")
-        drained = []
-        for line in drain.strip().splitlines():
-            parts = line.split("|", 2)
-            if len(parts) == 3:
-                drained.append({"nodes": parts[0], "state": parts[1], "reason": parts[2]})
-        resource["drained_nodes"] = drained
-    return resource
+def get_resource(partition: str) -> dict:
+    """Live occupancy for one partition by name (e.g. 'mpc', 'gpu').
+    (IRI: GET /resources/{id})"""
+    for res in compute.get_live_resources():
+        if res["partition"] == partition:
+            return res
+    raise ValueError(
+        f"Partition {partition!r} not found in live resources. "
+        f"Call get_facility for the list of partitions."
+    )
 
 
-# === account =================================================================
+@mcp.tool()
+def get_drained_nodes() -> list[dict]:
+    """Nodes currently drained/down and the reason — useful when capacity
+    looks lower than get_facility implies. (extension of GET /resources)"""
+    return compute.get_drained_nodes()
 
-def _parse_projects(output: str) -> list[dict]:
-    # Default sacctmgr column order (--parsable2, no --format):
-    # Cluster|Account|User|Partition|Share|Priority|...(12 more)...|QOS|Def QOS|GrpTRESRunMins
-    projects = []
-    for line in output.strip().splitlines():
-        parts = line.split("|")
-        if len(parts) < 18 or parts[0] == "Cluster":
-            continue
-        projects.append({
-            "id": parts[1],       # Account name — used as JobAttributes.account
-            "cluster": parts[0],
-            "user": parts[2],
-            "qos": parts[17] or None,
-        })
-    return projects
 
+# ---------------------------------------------------------------------------
+# Projects / accounting (IRI: GET /projects, GET /projects/{id})
+# ---------------------------------------------------------------------------
 
 @mcp.tool()
 def get_projects() -> list[dict]:
-    """List projects (Slurm accounts) the current user belongs to.
-    (IRI: GET /account/projects)
+    """The projects (Slurm accounts) the current user may charge, with their
+    allowed partitions/QOS, plus the fair-share standing that governs when
+    queued jobs start. (IRI: GET /projects)
 
-    Each project has an id (account name) used in JobAttributes.account.
-    """
-    output = run_command(
-        "sacctmgr show associations user=$USER --parsable2 --noheader"
+    HBW2 has real Slurm accounting, so this reads it live (sacctmgr +
+    sshare). The remaining core-time balance moves continuously — read it
+    here rather than assuming a cached value. A user names one of these
+    accounts per job (submit_job's spec.attributes.account), or sets a
+    default in ~/.hpc-agent/hokusai.json under defaults.account."""
+    assoc = run_command(
+        "sacctmgr --noheader --parsable2 show associations "
+        "where user=$USER format=Account,Partition,QOS"
     )
-    return _parse_projects(output)
+    projects: dict[str, dict] = {}
+    for line in assoc.strip().splitlines():
+        parts = line.split("|")
+        if len(parts) < 1 or not parts[0]:
+            continue
+        acct = parts[0]
+        entry = projects.setdefault(
+            acct, {"account": acct, "partitions": set(), "qos": set()}
+        )
+        if len(parts) > 1 and parts[1]:
+            entry["partitions"].add(parts[1])
+        if len(parts) > 2 and parts[2]:
+            entry["qos"].update(q for q in parts[2].split(",") if q)
+
+    share = run_command("sshare -U --parsable2 --noheader "
+                        "--format=Account,FairShare,RawUsage")
+    fairshare: dict[str, dict] = {}
+    for line in share.strip().splitlines():
+        parts = line.split("|")
+        if len(parts) >= 3 and parts[0]:
+            fairshare[parts[0].strip()] = {
+                "fairshare": parts[1].strip(),
+                "raw_usage": parts[2].strip(),
+            }
+
+    result = []
+    for acct, entry in sorted(projects.items()):
+        result.append({
+            "account": acct,
+            "partitions": sorted(entry["partitions"]),
+            "qos": sorted(entry["qos"]),
+            **fairshare.get(acct, {}),
+        })
+    return result
 
 
 @mcp.tool()
-def get_project(project_id: str) -> dict:
-    """Get details for a single project (Slurm account).
-    (IRI: GET /account/projects/{id})
-    """
-    projects = get_projects()
-    for p in projects:
-        if p["id"] == project_id:
-            return p
-    raise ValueError(f"Project '{project_id}' not found for current user")
+def get_project(account: str) -> dict:
+    """One project's associations and fair-share standing by account ID
+    (e.g. 'RB99999'). (IRI: GET /projects/{id})"""
+    for proj in get_projects():
+        if proj["account"] == account:
+            return proj
+    raise ValueError(
+        f"Account {account!r} is not one the current user can charge. "
+        f"Call get_projects to see the available accounts."
+    )
 
 
-# === compute =================================================================
+# ---------------------------------------------------------------------------
+# Jobs (IRI: POST/GET/DELETE/PATCH /compute/jobs)
+# ---------------------------------------------------------------------------
+
+def _apply_defaults(spec: JobSpec) -> JobSpec:
+    """Fill HBW2's machine defaults into a spec the caller left partial:
+    the default partition (mpc) and the default project/account. HBW2
+    requires an account on every job, so if none can be resolved this raises
+    a clear error rather than submitting a job the scheduler will reject."""
+    if not spec.attributes.queue_name:
+        spec.attributes.queue_name = config.default_partition()
+    if spec.attributes.account is None:
+        spec.attributes.account = config.default_account()
+    if not spec.attributes.account:
+        raise ValueError(
+            "No project named. Every HBW2 job is billed to a project, so "
+            "--account is mandatory. Set spec.attributes.account to a project "
+            "ID (RIKEN 'RB...' or HPCI 'HP...'), or configure a default under "
+            "defaults.account in ~/.hpc-agent/hokusai.json. Use get_projects "
+            "to see which accounts you may charge."
+        )
+    return spec
+
 
 @mcp.tool()
-def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
-    """Submit a job described by a JobSpec. (IRI: POST /compute/job/{resource_id})
-
-    The spec is rendered as an sbatch script (kept under ~/.hokusai/jobs/ on
-    the cluster for auditability) and submitted. Returns the job_id and the
-    script path. HBW2 notes: attributes.queue_name picks the partition
-    (mpc/mpc_l/lmc for CPU work, gpu for the GPU server); attributes.account
-    (a project ID like RB999999) is required and falls back to the configured
-    default; describe CPU work with resources.processes_per_node (MPI ranks)
-    and cpu_cores_per_process (threads); executable may be a shell line such as
-    'module load intel && srun ./a.out'.
-    """
-    _check_resource(resource_id)
-    return compute.submit(spec)
+def render_job_script(spec: JobSpec) -> str:
+    """Render the sbatch script for a JobSpec *without* submitting it, with
+    HBW2 defaults applied. Use this to show the user exactly what will run
+    before calling submit_job (the "show before you run" rule)."""
+    return compute.render_script(_apply_defaults(spec))
 
 
 @mcp.tool()
-def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
-    """Get the normalized status of one job. (IRI: GET /compute/status/...)
+def submit_job(spec: JobSpec) -> dict:
+    """Submit a batch job. Returns {job_id, script_path}. (IRI: POST /compute/jobs)
 
-    state is the normalized IRI state (QUEUED/ACTIVE/COMPLETED/FAILED/
-    CANCELED); native_state is Slurm's. For queued jobs, reason explains
-    the wait. Job stdout defaults to <workdir>/slurm-<job_id>.out — read it
-    with fs_tail or fs_view.
-    """
-    _check_resource(resource_id)
+    HBW2 defaults are applied first (partition -> mpc, account -> the user's
+    default project). Describe the job in resource terms — node_count,
+    processes_per_node (MPI ranks/node), cpu_cores_per_process (threads/rank),
+    memory, duration, queue_name, account — and this assembles the sbatch
+    script. Launch MPI with launcher='srun'; set OMP_NUM_THREADS in
+    environment to match cpu_cores_per_process for threaded code.
+
+    Before calling this, show the user the spec (or render_job_script's
+    output) and a one-line explanation, unless they asked to just run it."""
+    return compute.submit(_apply_defaults(spec))
+
+
+@mcp.tool()
+def get_job_status(job_id: str) -> Job:
+    """Normalized status of one job. (IRI: GET /compute/jobs/{id})"""
     jobs = compute.get_statuses([job_id])
     if not jobs:
         raise ValueError(f"Job {job_id} not found")
@@ -179,261 +199,198 @@ def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
 
 
 @mcp.tool()
-def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list[Job]:
-    """Get statuses for several jobs at once, or recent jobs when job_ids is
-    empty. (IRI: POST /compute/status/{resource_id})
-    """
-    _check_resource(resource_id)
-    if job_ids:
-        return compute.get_statuses(job_ids)
-    # No IDs given: current user's jobs from the last two days.
-    return compute.get_recent_statuses()
+def get_job_statuses(job_ids: list[str]) -> list[Job]:
+    """Status of several jobs, or — with an empty list — the current user's
+    recent jobs (last ~2 days via accounting). (IRI: GET /compute/jobs)"""
+    return compute.get_statuses(job_ids) if job_ids else compute.get_recent_statuses()
 
 
 @mcp.tool()
-def update_job(
-    job_id: str,
-    time_limit: str | None = None,
-    name: str | None = None,
-    partition: str | None = None,
-    account: str | None = None,
-    reservation: str | None = None,
-    resource_id: str = RESOURCE_ID,
-) -> Job:
-    """Update a queued or running job. (IRI: PUT /compute/job/{resource_id}/{job_id})
-
-    All fields are optional — only supplied ones are changed.
-    time_limit: new wall time as HH:MM:SS or D-HH:MM:SS (works on running jobs too).
-    partition, account, reservation: only valid while the job is still queued.
-    """
-    _check_resource(resource_id)
-    mapping = {
-        "TimeLimit": time_limit,
-        "Name": name,
-        "Partition": partition,
-        "Account": account,
-        "Reservation": reservation,
-    }
-    updates = " ".join(f"{k}={shlex.quote(v)}" for k, v in mapping.items() if v is not None)
-    if not updates:
-        raise ValueError("No fields to update — supply at least one argument")
-    run_command(f"scontrol update job {shlex.quote(job_id)} {updates}")
-    jobs = compute.get_statuses([job_id])
-    if not jobs:
-        raise ValueError(f"Job {job_id} not found after update")
-    return jobs[0]
-
-
-@mcp.tool()
-def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> Job | str:
-    """Cancel a queued or running job and report its resulting state.
-    (IRI: DELETE /compute/cancel/{resource_id}/{job_id})
-    """
-    _check_resource(resource_id)
+def cancel_job(job_id: str) -> Job | str:
+    """Cancel a job (scancel) and report its resulting state.
+    (IRI: DELETE /compute/jobs/{id})"""
     return compute.cancel(job_id)
 
 
-# === filesystem ==============================================================
-# Paths are relative to the home directory unless absolute.
+@mcp.tool()
+def update_job(job_id: str, hold: bool | None = None,
+               time_limit: str | None = None) -> Job:
+    """Modify a queued/running job via scontrol, then report its state.
+    (IRI: PATCH /compute/jobs/{id})
+
+    hold=True holds a pending job; hold=False releases it. time_limit
+    (HH:MM:SS or D-HH:MM:SS) changes the wall-time limit (subject to the
+    partition maximum and your permissions)."""
+    if hold is True:
+        run_command(f"scontrol hold {quote_path(job_id)}")
+    elif hold is False:
+        run_command(f"scontrol release {quote_path(job_id)}")
+    if time_limit:
+        run_command(f"scontrol update JobId={quote_path(job_id)} "
+                    f"TimeLimit={quote_path(time_limit)}")
+    return get_job_status(job_id)
+
 
 @mcp.tool()
-def fs_ls(path: str = ".", show_hidden: bool = False) -> str:
-    """List a directory on the cluster. (IRI: GET /filesystem/ls)"""
-    flags = "-la" if show_hidden else "-l"
-    return run_command(f"ls {flags} {quote_path(path)}")
+def read_job_output(job_id: str, tail_lines: int | None = None) -> str:
+    """Read a job's console output — the `slurm-<jobid>.out` file in the
+    directory it was launched from. (extension — not an IRI endpoint)
+
+    tail_lines, if set, returns only the last N lines (handy for a long or
+    still-running job). Looks the workdir up from the job's status; falls
+    back to the home directory if the scheduler no longer reports one."""
+    jobs = compute.get_statuses([job_id])
+    workdir = ""
+    if jobs and jobs[0].status and jobs[0].status.meta_data:
+        workdir = jobs[0].status.meta_data.get("workdir", "") or ""
+    path = f"{workdir.rstrip('/')}/slurm-{job_id}.out" if workdir else f"~/slurm-{job_id}.out"
+    reader = f"tail -n {int(tail_lines)}" if tail_lines else "cat"
+    return run_command(f"{reader} {quote_path(path)}")
+
+
+# ---------------------------------------------------------------------------
+# Filesystem (IRI: /storage operations)
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def fs_ls(path: str = ".", all_entries: bool = True) -> str:
+    """List a directory (long form, ISO timestamps). all_entries=True
+    includes dotfiles. (IRI: GET /storage listing)"""
+    flags = "-la" if all_entries else "-l"
+    return run_command(f"ls {flags} --time-style=long-iso {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_stat(path: str) -> str:
-    """Stat a file or directory on the cluster. (IRI: GET /filesystem/stat)"""
+    """Detailed metadata for a path (type, size, perms, owner, times)."""
     return run_command(f"stat {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_view(path: str) -> str:
-    """Read a whole text file on the cluster (output capped at 200KB).
-    (IRI: GET /filesystem/view) For large files use fs_head/fs_tail.
-    """
+    """Print a text file in full (truncated if very large)."""
     return run_command(f"cat {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_head(path: str, lines: int = 50) -> str:
-    """Read the first lines of a file on the cluster. (IRI: GET /filesystem/head)"""
+def fs_head(path: str, lines: int = 40) -> str:
+    """First N lines of a file."""
     return run_command(f"head -n {int(lines)} {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_tail(path: str, lines: int = 50) -> str:
-    """Read the last lines of a file on the cluster — e.g. a job's
-    slurm-<job_id>.out. (IRI: GET /filesystem/tail)
-    """
+def fs_tail(path: str, lines: int = 40) -> str:
+    """Last N lines of a file (e.g. tailing a job's output)."""
     return run_command(f"tail -n {int(lines)} {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_mkdir(path: str) -> str:
-    """Create a directory (and parents) on the cluster. (IRI: POST /filesystem/mkdir)"""
-    quoted = quote_path(path)
-    return run_command(f"mkdir -p {quoted} && echo created: $(realpath {quoted})")
+    """Create a directory, including parents (mkdir -p)."""
+    run_command(f"mkdir -p {quote_path(path)}")
+    return f"Created {path}"
 
 
 @mcp.tool()
-def fs_upload(path: str, local_path: str) -> dict:
-    """Upload a local file to the cluster. (IRI: POST /filesystem/upload)
-
-    Transfers local_path → path on the cluster via rsync or scp.
-    Creates remote parent directories as needed. No size limit.
-    Returns {remote_path, bytes, sha256, verified, transport}.
-    """
-    return upload_file(Path(local_path), path)
+def fs_upload(local_path: str, remote_path: str) -> dict:
+    """Upload a local file to the cluster (rsync/scp), verifying the
+    checksum end-to-end. (IRI: PUT /storage)"""
+    return upload_file(local_path, remote_path)
 
 
 @mcp.tool()
-def fs_checksum(path: str) -> str:
-    """SHA-256 checksum of a file on the cluster. (IRI: GET /filesystem/checksum)"""
-    return run_command(f"sha256sum {quote_path(path)}")
+def fs_download(remote_path: str, local_path: str) -> dict:
+    """Download a file from the cluster to the local machine (rsync/scp),
+    verifying the checksum end-to-end. (IRI: GET /storage content)"""
+    return download_file(remote_path, local_path)
 
 
 @mcp.tool()
-def fs_download(path: str, local_path: str | None = None) -> dict:
-    """Download a file from the cluster to local disk. (IRI: GET /filesystem/download ⚠ deviation)
-
-    Transfers path → local_path via rsync or scp. No size limit.
-    local_path defaults to the filename in the current working directory.
-    Returns {local_path, bytes, sha256, verified, transport}.
-    Deliberately deviates from the IRI base64 shape — see IRI_CHECKLIST.md.
-    """
-    dest = Path(local_path) if local_path else Path.cwd() / Path(path).name
-    return download_file(path, dest)
+def fs_checksum(path: str, algorithm: str = "sha256") -> str:
+    """Checksum of a remote file. algorithm: 'sha256' (default) or 'md5'."""
+    tool = {"sha256": "sha256sum", "md5": "md5sum"}.get(algorithm)
+    if not tool:
+        raise ValueError("algorithm must be 'sha256' or 'md5'")
+    return run_command(f"{tool} {quote_path(path)}")
 
 
 @mcp.tool()
-def fs_cp(src: str, dst: str) -> str:
-    """Copy a file or directory on the cluster. (IRI: POST /filesystem/cp)
-
-    Uses cp -r so it works for both files and directories.
-    """
-    return run_command(f"cp -r {quote_path(src)} {quote_path(dst)} && echo ok")
+def fs_cp(source: str, dest: str, recursive: bool = False) -> str:
+    """Copy a file (recursive=True for directories)."""
+    flag = "-r " if recursive else ""
+    run_command(f"cp {flag}{quote_path(source)} {quote_path(dest)}")
+    return f"Copied {source} -> {dest}"
 
 
 @mcp.tool()
-def fs_mv(src: str, dst: str) -> str:
-    """Move or rename a file or directory on the cluster. (IRI: POST /filesystem/mv)
-
-    Destructive — the source path will no longer exist after this call.
-    """
-    return run_command(f"mv {quote_path(src)} {quote_path(dst)} && echo ok")
+def fs_mv(source: str, dest: str) -> str:
+    """Move or rename a path."""
+    run_command(f"mv {quote_path(source)} {quote_path(dest)}")
+    return f"Moved {source} -> {dest}"
 
 
 @mcp.tool()
 def fs_chmod(path: str, mode: str) -> str:
-    """Change file permissions on the cluster. (IRI: PUT /filesystem/chmod)
-
-    mode is an octal string, e.g. '755' or '644'.
-    """
-    return run_command(f"chmod {shlex.quote(mode)} {quote_path(path)} && echo ok")
-
-
-@mcp.tool()
-def fs_chown(path: str, owner: str = "", group: str = "") -> str:
-    """Change file ownership on the cluster. (IRI: PUT /filesystem/chown)
-
-    Supply owner, group, or both. Normal users can only change group to one
-    they belong to; changing owner requires root.
-    """
-    if not owner and not group:
-        raise ValueError("Provide at least one of owner or group")
-    spec = owner + (":" + group if group else "")
-    return run_command(f"chown {shlex.quote(spec)} {quote_path(path)} && echo ok")
+    """Change permissions (mode like '755' or 'u+x'). recursion is not
+    applied — pass a directory only if you mean just that directory."""
+    run_command(f"chmod {quote_path(mode)} {quote_path(path)}")
+    return f"chmod {mode} {path}"
 
 
 @mcp.tool()
-def fs_symlink(path: str, link_path: str) -> str:
-    """Create a symbolic link on the cluster. (IRI: POST /filesystem/symlink)
-
-    path is the target; link_path is the new symlink to create.
-    """
-    return run_command(
-        f"ln -s {quote_path(path)} {quote_path(link_path)} && echo ok"
-    )
-
-
-_COMPRESSION_FLAGS = {
-    CompressionType.NONE: "",
-    CompressionType.GZIP: "z",
-    CompressionType.BZIP2: "j",
-    CompressionType.XZ: "J",
-}
+def fs_chown(path: str, owner: str) -> str:
+    """Change ownership (owner like 'user' or 'user:group'). Usually only
+    works within your own group; the cluster may reject it otherwise."""
+    run_command(f"chown {quote_path(owner)} {quote_path(path)}")
+    return f"chown {owner} {path}"
 
 
 @mcp.tool()
-def fs_compress(
-    target_path: str,
-    path: str | None = None,
-    match_pattern: str | None = None,
-    dereference: bool = False,
-    compression: CompressionType = CompressionType.GZIP,
-) -> str:
-    """Create an archive on the cluster. (IRI: POST /filesystem/compress)
-
-    target_path: path of the archive to create.
-    path: source file or directory (defaults to current directory).
-    match_pattern: regex passed to find -regex to filter files.
-    dereference: follow symlinks (-h).
-    compression: gzip (default), bzip2, xz, or none.
-    """
-    flag = _COMPRESSION_FLAGS[compression]
-    deref = "h" if dereference else ""
-    tar_flags = f"-{deref}c{flag}f"
-
-    if match_pattern:
-        src = quote_path(path or ".")
-        pattern = shlex.quote(match_pattern)
-        cmd = (
-            f"find {src} -regex {pattern} -print0 | "
-            f"tar {tar_flags} {quote_path(target_path)} --null -T -"
-        )
-    else:
-        src = quote_path(path or ".")
-        cmd = f"tar {tar_flags} {quote_path(target_path)} {src}"
-
-    return run_command(cmd + " && echo ok")
+def fs_symlink(target: str, link_path: str) -> str:
+    """Create a symbolic link at link_path pointing to target."""
+    run_command(f"ln -s {quote_path(target)} {quote_path(link_path)}")
+    return f"Linked {link_path} -> {target}"
 
 
 @mcp.tool()
-def fs_extract(
-    path: str,
-    target_path: str,
-    compression: CompressionType = CompressionType.GZIP,
-) -> str:
-    """Extract an archive on the cluster. (IRI: POST /filesystem/extract)
-
-    path: archive file to extract.
-    target_path: directory to extract into (created if absent).
-    compression: gzip (default), bzip2, xz, or none.
-    """
-    flag = _COMPRESSION_FLAGS[compression]
-    tar_flags = f"-x{flag}f"
-    return run_command(
-        f"mkdir -p {quote_path(target_path)} && "
-        f"tar {tar_flags} {quote_path(path)} -C {quote_path(target_path)} && echo ok"
-    )
+def fs_compress(paths: list[str], archive: str,
+                compression: CompressionType = CompressionType.GZIP) -> str:
+    """Create a tar archive of one or more paths. compression: none, gzip
+    (default), bzip2, or xz."""
+    flag = {
+        CompressionType.NONE: "-cf",
+        CompressionType.GZIP: "-czf",
+        CompressionType.BZIP2: "-cjf",
+        CompressionType.XZ: "-cJf",
+    }[compression]
+    quoted = " ".join(quote_path(p) for p in paths)
+    run_command(f"tar {flag} {quote_path(archive)} {quoted}")
+    return f"Created archive {archive}"
 
 
-# === extensions (not part of the IRI API) ====================================
+@mcp.tool()
+def fs_extract(archive: str, dest: str = ".") -> str:
+    """Extract a tar archive into dest (compression auto-detected)."""
+    run_command(f"mkdir -p {quote_path(dest)} && "
+                f"tar -xf {quote_path(archive)} -C {quote_path(dest)}")
+    return f"Extracted {archive} -> {dest}"
+
+
+# ---------------------------------------------------------------------------
+# Escape hatch
+# ---------------------------------------------------------------------------
 
 @mcp.tool()
 def run_command_on_cluster(command: str) -> str:
-    """Run an arbitrary shell command on the HBW2 front-end node (extension —
-    not an IRI endpoint).
+    """Run an arbitrary shell command on the login node (extension — not an
+    IRI endpoint). Before calling this, show the user the exact command and
+    a one-line explanation of what it does, then call it — skip the preview
+    only if the user explicitly asked to just run something.
 
-    Use only when no dedicated tool fits, e.g. 'module avail' to list software,
-    'listcpu -p <project>' to check core-time, or 'lfs quota -p $UID $HOME' for
-    disk usage. Runs under a login shell from the home directory; returns
-    stdout+stderr. Do not run heavy computation on the front-end — submit a job
-    instead.
-    """
+    Do not run heavy computation on the login node (it is shared and lightly
+    resourced) — submit a job instead. Compute nodes have no direct internet
+    route; a job that must fetch something reaches the web through the
+    front-end proxy at http://$SLURM_SUBMIT_HOST:3128."""
     return run_command(command)
 
 

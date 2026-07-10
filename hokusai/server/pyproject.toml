@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hokusai-mcp"
-version = "0.2.18"
-description = "MCP servers for the RIKEN HOKUSAI BigWaterfall2 supercomputer: Slurm interaction and documentation search."
+version = "0.3.1"
+description = "MCP plugin for HOKUSAI BigWaterfall2 (HBW2), the RIKEN R-CCS CPU-first Slurm cluster — submit and monitor jobs, manage files, and search the machine guide. A thin skin over hpc-agent-core."
 requires-python = ">=3.10"
 dependencies = [
-    "mcp",
-    "remotemanager",
-    "httpx",
-    "numpy",
+    # Pinned to a compatible range so a future core release can't silently
+    # change what users install. 0.4.0 is current at time of writing; widen
+    # the ceiling deliberately after verifying against a newer core.
+    "hpc-agent-core>=0.4,<0.5",
 ]
 
 [project.scripts]
@@ -23,8 +23,12 @@ hokusai-doctor = "hokusai_mcp.doctor:main"
 include = ["hokusai_mcp*"]
 
 [tool.setuptools.package-data]
+# Ship the guide (.md), the static facts (.json), and the pre-built docs
+# index. Missing the .md glob here would silently ship no guide — doctor's
+# check_docs_guide_bundled catches that, but list it correctly up front.
 hokusai_mcp = [
-    "data/*.json",
     "data/*.md",
-    "data/docs_index/*",
+    "data/*.json",
+    "data/docs_index/*.json",
+    "data/docs_index/*.npy",
 ]

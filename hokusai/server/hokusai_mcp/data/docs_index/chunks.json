@@ -1,67 +1,67 @@
 [
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2)",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "An original, plain-language orientation to the HOKUSAI BigWaterfall2 (HBW2)\nsystem, written for users who drive it through HokusaiAgent. It records the\nsite-specific facts that shape how you ask for work — not general HPC/Linux\nbackground, and not a command reference. Stable facts (partition names, node\nshapes, paths) are stated here so the agent can size a job without a round-trip;\ngenuinely changing values (queue occupancy, your budget balance, exact installed\nversions) are left to the live system, which the agent queries on demand.",
     "id": 0
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > What HBW2 is",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "HBW2 is a CPU-first supercomputer at RIKEN, scheduled with Slurm and reached\nthrough shared front-end login nodes. Three subsystems:\n\n- **MPC (Massively Parallel Computer)** — the workhorse: 312 standard nodes, each\n  with 112 Intel Xeon cores (two 56-core sockets) and ~112 GiB of memory. Most\n  work runs here.\n- **LMC (Large Memory)** — 2 nodes with ~2.7 TiB of memory each, for jobs that\n  need very large memory on a single host.\n- **GPU** — a small 4-node server with NVIDIA H100 GPUs, mainly for\n  postprocessing. Secondary; most HBW2 work is CPU/MPI.\n\nThe practical consequence for working with the agent: think CPU and MPI first,\ndescribe jobs in nodes/processes/threads, and reach for GPUs only when a workload\ngenuinely needs one.",
     "id": 1
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Getting on the system",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "You connect over SSH to `hokusai.riken.jp`, load-balanced across login nodes\n`hokusai1`–`hokusai4`. Authentication is by SSH key only — no password prompts —\nso register your public key through the web portal (https://hokusai.riken.jp/hbw2/)\nbefore your first login. The portal also lists current application versions and\nhosts the official manuals.\n\nLogin nodes are for editing, building, staging files, and submitting. They are\nshared and lightly resourced, so anything heavier than a quick check belongs in a\njob — have the agent submit it rather than running it on the front end.",
     "id": 2
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Projects and your compute budget",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "Every job is billed to a project and you must name one when you submit (the\nscheduler flag is `--account`). Project IDs are short codes: RIKEN projects begin\n`RB` (e.g. `RB99999`); HPCI projects derive from an `HP` code. The agent can hold\na default project and let you override it per job.\n\nEach project has a finite core-time allowance, spent as jobs run and recovering\ngradually under a fair-share policy — so steady use through the year beats bursts,\nand when the allowance is exhausted the project's new jobs stop starting. The\nremaining balance changes continuously; ask the agent to read it live rather than\nassuming it.",
     "id": 3
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Choosing where a job runs",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "A partition selects the subsystem and bounds wall time. The defaults if you don't\nsay otherwise: 1 hour of wall time, and a per-core memory share of 1 GiB on MPC,\n30 GiB on LMC, 4 GiB on GPU (asking for more memory can raise the number of cores\nyou are billed for).\n\n| partition | use for | cores/node | memory/node | max wall time |\n|---|---|---|---|---|\n| `mpc` (default) | everyday CPU / MPI work | 112 | ~112 GiB | ~24 h |\n| `mpc_l` | longer CPU runs | 112 | ~112 GiB | ~72 h |\n| `lmc` | very-large-memory jobs | 96 | ~2.7 TiB | ~24 h |\n| `gpu` | GPU batch work | 112 | large | ~72 h |\n| `gpu_i` | interactive GPU sessions | 112 | large | ~24 h |\n\nHow many nodes each partition has and how busy it is right now both change over\ntime — let the agent read current state (`get_facility` / live status) and tell\nyou where a job will start soonest, rather than planning around remembered counts.\nFor a GPU job, request GPUs explicitly (one GPU also reserves roughly 28 CPU\ncores); the agent handles the GPU-specific scheduling details.",
     "id": 4
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Storage",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "Four places to keep data, each with a purpose:\n\n- `/home/<user>` — code, scripts, small files; ~4 TB quota.\n- `/data/<projectID>` — larger datasets and shared project results; requested\n  through the portal and charged, so it is opt-in per project.\n- `/tmp_work` — shared scratch; its contents are cleaned up automatically once\n  they age past about a week, so copy anything you want to keep back to home or\n  project storage before a job ends.\n- node-local disk — fast storage that exists only for a job's duration; stage\n  inputs onto it for I/O-heavy stages and copy results back out before the job\n  releases the node, because it is wiped when the job ends.\n\nThe shared filesystem is Lustre; the agent can report your current usage and quota\non request.",
     "id": 5
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Software, compilers, and MPI",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "Software is provided through environment modules. Because versions change, have\nthe agent list what is installed live rather than relying on a frozen list — but a\nfew stable conventions matter when building and launching:\n\n- **Intel oneAPI is the primary toolchain.** Loading the `intel` module brings in\n  the Intel compilers and **Intel MPI** together; this is the recommended default\n  for building and running MPI code on the Xeon nodes.\n- **Launch MPI work with `srun`.** Under Slurm, `srun` inherits the job's\n  allocation, so you don't pass process counts on the launch line — the resources\n  you requested for the job determine them. This is true regardless of MPI flavor.\n- **Open MPI is available as an alternative**, but its module **conflicts with\n  Intel MPI** — load one or the other, not both (unload/`module purge` first if\n  switching). Choosing Open MPI changes which module you load, not how you launch:\n  it is still `srun` under Slurm.\n- **Threaded code must be told its thread count** (match it to the cores you\n  reserve per process), or it may run with the wrong number and far slower.\n\nMajor preinstalled applications include Gaussian, GROMACS, AMBER, NAMD, GAMESS,\nADF, ROOT, VMD, and GaussView — but confirm availability and version live, since\nthe catalogue evolves.",
     "id": 6
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Running work through the agent",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "You describe a job in resource terms — how many nodes, how many processes (MPI\nranks) per node, how many threads per process, how much memory and wall time, and\nwhich project to charge — and the agent assembles and submits the batch job, then\nreturns an identifier to track. You do not write batch scripts or recall scheduler\nflags yourself. Most jobs are pure-CPU MPI or a hybrid of MPI across nodes with\nthreads within each node.\n\nOne operational detail: compute nodes have no direct internet route. Outbound\nconnections are relayed through a proxy on the front end (the\n`$SLURM_SUBMIT_HOST` on port 3128), which the agent sets up when a running job\nneeds to fetch something.",
     "id": 7
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Bringing your own environment with containers",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "Singularity is available when you want to carry a specific software stack onto the\nmachine. Pull a ready-made image from a public registry or build your own, then\nhave the agent run your program inside it; for GPU jobs the agent enables\ncontainer GPU access automatically.",
     "id": 8
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Following jobs and untangling failures",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "After submission, a job's queue position, state, and history come from the\nscheduler — ask the agent and it reports back in plain language, including why a\nwaiting job is waiting (HBW2 orders jobs by fair-share priority). A job's console\noutput is written to a file named `slurm-<jobid>.out` in the directory it was\nlaunched from, which the agent can read and summarize.\n\nWhen a job misbehaves, the cause is usually one of a few:\n\n- No project was named, or the project's core-time is exhausted.\n- It ran out of memory — move to a bigger memory share or the `lmc` partition.\n- It hit its wall-time limit — raise the limit or use `mpc_l` for longer runs.\n- Its thread count was left unset, so performance collapsed.\n- Conflicting MPI modules (Intel MPI and Open MPI) were loaded together.\n\nThe agent can inspect the failed job's record and output to point at which it was.",
     "id": 9
   },
   {
     "breadcrumb": "HOKUSAI BigWaterfall2 (HBW2) > Staying current",
-    "url": "https://hokusai.riken.jp/hbw2/",
+    "url": "",
     "text": "HBW2 evolves — partitions, installed software, limits, and policies change. The\nauthoritative sources are the portal and the live state of the machine, which the\nagent can query whenever a precise, current answer matters. For anything not\ncovered here — especially accounts, allocations, and policy — fall back to those\nor to RIKEN R-CCS support.",
     "id": 10
   }

@@ -1,148 +1,116 @@
-# HokusaiAgent — agent instructions
+# AGENTS.md — HOKUSAI BigWaterfall2 (HBW2) plugin
 
-Claude Code and Codex plugin for the RIKEN HOKUSAI BigWaterfall2 (HBW2)
-supercomputer: two MCP servers (`hokusai-hpc` for Slurm, `hokusai-docs` for
-documentation RAG) plus skills. See README.md for the user-facing overview.
+Agent-facing notes for working on *this* repo: the design rules it inherits,
+the cluster facts specific to HBW2, decisions made under uncertainty, and a
+map of where everything lives.
 
-HBW2 is a **CPU-first** machine: the 312-node Massively Parallel Computer (MPC)
-and the 2-node large-memory server (LMC) carry the bulk of the work. There is a
-small 4-node H100 GPU server for postprocessing — treat GPUs as an optional,
-secondary resource, not the default.
+For the general porting process this repo follows, see
+[hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md).
+Don't copy that guide here — read the canonical version.
 
-## Design rules (read before changing code)
+## Design rules (from the porting guide)
 
-- **The `hokusai-hpc` tool surface mirrors the IRI Facility API** (DOE standard).
-  The reference spec is **not committed** (it is ALCF's, with no redistribution
-  license); fetch a working copy when you need it for coverage work —
-  `curl -s https://api.alcf.anl.gov/openapi.json -o openapi.json` (git-ignored).
-  Before adding, renaming, or removing a tool, check `IRI_CHECKLIST.md` — new
-  tools should map to an IRI endpoint and the checklist must be updated.
-  Extensions with no IRI counterpart (like `run_command_on_cluster`) are allowed
-  but must be marked as such. When porting, **re-decide coverage per machine** —
-  the checklist verdicts are machine-specific (an endpoint can be implementable on
-  one machine and not another); see PORTING.md.
-- **All cluster interaction goes through `server/hokusai_mcp/middleware.py`**
-  (`run_command` / `write_remote_file`). Never shell out to ssh directly from
-  tool code. Middleware enforces three conventions in one place: commands run
-  under a **login shell** (Slurm on HBW2 resolves through the login profile),
-  the working directory is **$HOME** (relative paths resolve there), and
-  payloads travel **base64-encoded** (quote-proof). Output is capped at 200KB.
-- **Never write to stdout in server code** — the MCP stdio transport uses it
-  for JSON-RPC and any stray print corrupts the session. Log to stderr.
-  remotemanager prints progress to stdout; middleware redirects it.
-- **Tools are thin verbs; workflow knowledge lives in `plugins/hokusai/skills/`.** If you're
-  writing a long docstring telling the model *when* to do something, it
-  probably belongs in a SKILL.md instead.
-- **The MCP runtime must be self-contained under `server/`.** Plugin metadata is
-  shared across Claude Code and Codex, but `plugins/hokusai/.mcp.json` launches the servers with
-  `uv tool run --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server`.
-  Do not depend on `CLAUDE_PLUGIN_ROOT`, Codex-specific root variables, or
-  repo-root `data/` paths at runtime. Anything the MCP server needs after uv
-  installation must be package data under `server/hokusai_mcp/data/`.
-- **`models.py` follows PSI/J shapes** (JobSpec/ResourceSpec/JobAttributes/
-  JobState). Describe work in CPU terms (nodes / processes_per_node ranks /
-  cpu_cores_per_process threads / memory); `gpus` is an optional extension.
-  Deviations are listed at the bottom of `IRI_CHECKLIST.md`.
-- Bias to simple and maintainable. No new runtime dependencies without a strong
-  reason (current set: mcp, remotemanager, httpx, numpy). Python ≥ 3.10.
+1. **No write access to `hpc-agent-core`.** Every customization is reachable
+   from this repo: `configure()` arguments, subclassing a backend, or writing
+   our own equivalent. If it feels like core needs editing, re-read the
+   relevant module's docstring — the extension point is already there.
+2. **Clarity over cleverness.** A little machine-specific, readable code here
+   beats a clever generic abstraction. HBW2 is deliberately close to core's
+   defaults; the port is thin on purpose.
+3. **The MCP server must never fail to start.** Missing/malformed config is a
+   tool-call-time error, never a startup crash. Nothing above module scope in
+   `config.py`/`compute.py`/`hpc_server.py` touches the network or reads the
+   config file eagerly.
+4. **Bias agent files into `~/agent/`.** Job scripts default to
+   `~/agent/jobs/` (core's `jobs_dir` default). Honor any explicit path.
+5. **Show before you run.** Before `submit_job`/`run_command_on_cluster`, show
+   the user the spec/command and a one-line explanation unless told to just run.
+6. **Never invent a docs URL.** `docs_cite_url` is blank (see below); search
+   results carry no URL and nothing should add one.
 
-## Cluster facts
+## HBW2 cluster facts
 
-- SSH destination comes from `~/.hokusai/config.json` (`ssh.host`, default
-  alias `hokusai`) → `hokusai.riken.jp` (round-robins to `hokusai1..4`).
-  Key-based auth only — the MCP server cannot answer password prompts.
-- Scheduler is **Slurm** (sbatch/squeue/sacct/scancel/sinfo). Nodes are
-  **x86_64 Intel Xeon**; build with the Intel oneAPI compilers (`module load
-  intel`) and Intel MKL (`-qmkl`).
-- **Every job needs `--account <projectID>`** (e.g. `RB999999`). A default lives
-  in config (`account` / `HOKUSAI_ACCOUNT`) and is injected by `compute.py` when
-  a JobSpec omits one. Core-time is checked with `listcpu -p <project>`.
-- Partitions: `mpc` (default, ≤24h), `mpc_l` (≤72h), `lmc` (large memory),
-  `gpu`/`gpu_i` (GPU server). GPUs are requested with `--gpus`. Default wall
-  time 1h.
-- Storage: `/home` (4 TB), `/data/<projectID>`, `/tmp_work` (scratch, purged
-  after a week). Lustre — `lfs quota` for usage.
+- **Scheduler:** Slurm (23.02.6 observed live). **Accounting is ON** — `sacct`
+  returns history and `sshare` reports fair-share; verified against the live
+  login node.
+- **GPU dialect:** job-total `--gpus=N` (`gpu_request_style="gpus_total"`),
+  single vendor (NVIDIA H100 → `--nv`), and Slurm derives node count from the
+  GPU count (`nodes_always_explicit=False`, core's default for gpus_total).
+  This is row 1 of PORTING.md §6 exactly.
+- **Partitions (live `sinfo`):** `mpc` (312 nodes, 24 h), `mpc_l` (156, 72 h),
+  `lmc` (2, 24 h), `gpu` (3, 72 h), `gpu_i` (1, 24 h). Node counts and
+  occupancy change — read them with `get_resources`, never hardcode.
+- **Accounts:** `--account` mandatory; RIKEN `RB…`, HPCI `HP…`. Fair-share
+  governs queue order and recovers gradually.
+- **Storage:** `/home/<user>` (~4 TB), `/data/<projectID>` (opt-in, charged),
+  `/tmp_work` (scratch, ~1-week purge), node-local disk (per-job, wiped).
+  Lustre.
+- **Software:** environment modules; Intel oneAPI primary (`intel` module →
+  Intel compilers + Intel MPI; `intel/25.3.0`, `intelmpi/impi_25.3.0` live).
+  Open MPI (`openmpi/4.1.6`) is an alternative that **conflicts** with Intel
+  MPI. Launch with `srun`. Singularity for containers.
+- **Login:** SSH key-only via `hokusai.riken.jp` (`hokusai1`–`hokusai4`); keys
+  registered at `https://hokusai.riken.jp/hbw2/`.
+- **Network:** compute nodes have no internet; proxy at
+  `http://$SLURM_SUBMIT_HOST:3128`.
+- **Connection quirks:** none — HBW2 works with core's shared
+  `remotemanager.Computer` defaults, so no `computer_defaults` are passed.
 
-## Documentation search (RAG)
+## Decisions made under uncertainty
 
-The docs source is **`server/hokusai_mcp/data/hokusai_guide.md`** — an *original*, plain-language
-guide to HBW2 written for users working through the agent (facts in our own words,
-not a copy of the vendor manual, so the index is freely distributable). It
-deliberately omits generic HPC/compiler background and anything the agent can read
-live (`sinfo`/`sacct`/`module avail`/`listcpu`); keep it that way when editing.
-`rag/ingest.py` chunks it by markdown heading into `server/hokusai_mcp/data/docs_index/chunks.json`
-(section text + breadcrumbs, also the BM25 corpus). The guide and the index are
-both committed as package data so `uv tool run --from ...#subdirectory=server`
-installs a self-contained MCP runtime.
+- **`has_accounting=True`** — the guide describes billing and fair-share but
+  doesn't name a command. Confirmed live: `sacct` and `sshare` both work.
+- **`docs_cite_url=""`** — the HBW2 portal (`hokusai.riken.jp/hbw2/`) is an
+  auth-gated site, not a stable public docs page, so search results cite no
+  URL (PORTING.md §3).
+- **`get_projects` uses `sacctmgr` associations + `sshare`.** The guide gives
+  no project-balance command; these are standard accounting-on Slurm queries
+  and were verified to list the user's real accounts (`hp260089`, `rb230090`)
+  with QOS and fair-share. Partition lists come back empty when associations
+  aren't partition-pinned — that means "all allowed", not "none".
+- **Default account lives in the user config (`defaults.account`) or
+  `HOKUSAI_ACCOUNT`,** not in bundled facts — the project is a per-user
+  choice. An older config layout used a top-level `"account"` key; the port
+  does not read that (deliberately not carried forward).
+- **The guide is used verbatim as the bundled `data/hokusai_guide.md`,** since
+  `docs/hokusai_guide.md` was already written in the plain-language,
+  live-defer-to-tools style §2 prescribes. `data/` is the shipped copy the
+  docs index is built from; `docs/` is the human-facing source. Keep them in
+  sync by hand if either changes.
 
-Search uses BGE-M3 (`bge-m3:567m`) served at the shared RIKEN endpoint
-`http://llm.ai.r-ccs.riken.jp:11434/v1` — both are hardcoded constants
-(`EMBED_BASE_URL` / `EMBED_MODEL` in `config.py`). The only user-facing setting
-is `api_key` (`HOKUSAI_EMBED_API_KEY`). When `embeddings.npy` is present and the
-endpoint reachable, search is semantic (vectors aligned row-for-row to
-`chunks.json`); otherwise it falls back to BM25 keyword matching over the same
-chunks. `embeddings.npy` is only generated when the endpoint is reachable at
-ingest time, so the committed index may be BM25-only until then.
+## Validation status
 
-**Do not make model or base_url user-configurable.** `embeddings.npy` is tied to
-`bge-m3:567m`; a different model at query time silently produces garbage cosine
-similarity. If the model ever changes, update the constants, re-run ingest, and
-commit the new `embeddings.npy`. `rag/embed.py` is the only file that knows the
-API dialect.
+Verified against the **real HBW2 login node** (not just doctor):
+`get_facility`, `get_projects`, `get_resources`, and a full job lifecycle —
+submitted job `8481063` on `mpc`, followed queued → active → completed, and
+read its `slurm-*.out`. This is the PORTING.md §9 "submit a real job" bar.
+The embedding endpoint was unreachable from the test network, so the docs
+index is BM25-only; rebuild with an embedding key on the RIKEN network via
+`python -m hpc_agent_core.rag.ingest` (after importing `hokusai_mcp.config`).
 
-**To rebuild the index** (after editing the guide): `python -m
-hokusai_mcp.rag.ingest` (add `--no-embed` to skip vectors, or omit it to compute
-embeddings when the endpoint is reachable + an API key is set). Commit the
-regenerated `chunks.json` (+ `embeddings.npy` if produced).
-
-## Development workflow
-
-```bash
-cd server
-python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
-./run.sh hokusai_mcp.doctor          # validate config, SSH, Slurm, embedding, index
-.venv/bin/python tests/smoke.py      # live read-only test over MCP stdio
-.venv/bin/python tests/smoke.py --job   # + submits a real ~5-min CPU job
-.venv/bin/python -m hokusai_mcp.rag.ingest  # rebuild docs index from packaged guide
-```
-
-- The smoke tests need working cluster access (and a valid project account);
-  `--job` consumes a (tiny) allocation. Run the read-only test for most changes;
-  run `--job` when touching `compute.py`, `middleware.py`, or `models.py`.
-- Validate the install-path runtime with:
-  `uv tool run --quiet --from ./server hokusai-doctor`. The marketplace runtime
-  uses the same package boundary, but from GitHub `main`.
-- Test the plugin in Claude Code:
-  `/plugin marketplace add <repo-path>` → `/plugin install hokusai@hokusai-marketplace`.
-- Test the plugin in Codex:
-  `codex plugin marketplace add <repo-path>` → open `/plugins` and install `hokusai`.
-- User settings live in `~/.hokusai/config.json` (may contain an embedding API
-  key — never commit it, never echo the key). The `hokusai-configuring` skill
-  documents the schema.
-
-## Repository map
+## Repo map
 
 ```
-.claude-plugin/         Claude Code marketplace manifest
-.agents/plugins/        Codex marketplace manifest
-plugins/hokusai/        actual plugin payload for both Claude Code and Codex
-  .claude-plugin/       Claude Code plugin manifest
-  .codex-plugin/        Codex plugin manifest
-  .mcp.json             shared MCP launch config (uv tool run from main)
-  skills/               hokusai-configuring, hokusai-submitting-jobs,
-                        hokusai-monitoring-jobs, hokusai-reference, hokusai-demo
-IRI_CHECKLIST.md        API coverage tracker — keep in sync with hpc_server.py
-server/hokusai_mcp/
-  data/                 packaged guide, static facts, and docs_index
-  middleware.py         SSH layer — the only place that talks to the cluster
-  models.py             PSI/J-style schemas + Slurm state normalization
-  compute.py            JobSpec → sbatch, sacct/squeue parsing, account fallback
-  hpc_server.py         hokusai-hpc MCP tools (IRI-grouped)
-  docs_server.py        hokusai-docs MCP tools
-  rag/                  embed client / index store / markdown ingest pipeline
-  doctor.py             health checks (python -m hokusai_mcp.doctor)
-  serving.py            shared CLI entry point
+docs/hokusai_guide.md              the machine guide (human-facing source)
+server/
+  pyproject.toml                   package + console scripts, pins hpc-agent-core>=0.4,<0.5
+  hokusai_mcp/
+    config.py                      configure() registration + cluster-config/account helpers
+    compute.py                     constructs the SlurmBackend (the one backend line)
+    hpc_server.py                  the IRI-grouped MCP tool surface (jobs, resources, projects, fs_*)
+    docs_server.py                 thin wrapper over hpc_agent_core.docs_server
+    doctor.py                      thin wrapper over hpc_agent_core.doctor
+    data/
+      hokusai_config.json          static facts get_facility returns
+      hokusai_guide.md             bundled guide (copy of docs/, what the index is built from)
+      docs_index/                  generated: chunks.json (+ embeddings.npy with a key)
+  tests/smoke.py                   read-only MCP stdio test; --job submits a real job
+plugins/hokusai/
+  .claude-plugin/plugin.json       Claude Code plugin manifest
+  .codex-plugin/plugin.json        Codex plugin manifest
+  .mcp.json                        launches hokusai-hpc + hokusai-docs
+  skills/                          configuring, submitting-jobs, monitoring-jobs, reference, demo
+.claude-plugin/marketplace.json    Claude Code marketplace manifest
+.agents/plugins/marketplace.json   Codex marketplace manifest
+README.md / AGENTS.md / IRI_CHECKLIST.md
 ```
-
-Skill names are machine-prefixed so both this and the AI4S plugin can be
-installed at once without skill-name collisions.

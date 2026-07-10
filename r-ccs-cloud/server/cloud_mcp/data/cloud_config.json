@@ -1,45 +1,46 @@
 {
   "cluster": "rccs_cloud",
   "login_host": "login.cloud.r-ccs.riken.jp",
-  "character": "Heterogeneous research testbed. Many partition families covering CPU-only, NVIDIA GPU, AMD GPU, and Intel GPU hardware. Pick the partition for the hardware you intend to use; modules are partition-specific.",
+  "character": "Heterogeneous research testbed. ~20 partition families covering CPU-only, NVIDIA GPU, AMD GPU, and Intel GPU hardware. Pick the partition for the hardware you intend to use; modules, GPU flags, and even the OS are partition-specific.",
   "notes": [
     "Every partition has its own system module. Always load system/<partition> first, e.g. 'module load system/genoa mpi/openmpi-x86_64'. Never use a system module from a different partition.",
-    "source /etc/profile is required in every batch script before any module commands. render_script emits it automatically.",
-    "GPU allocation: most GPU partitions require --gpus=<n>. Exceptions: qc-gh200 and ng-dgx-m[0-3] are unified CPU+GPU superchips — no --gpus flag is needed.",
+    "source /etc/profile is required in every batch script before any module commands. submit_job's rendered script emits it automatically right after the #SBATCH header — do not add it to executable.",
+    "GPU allocation: GPUs are requested with --gpus=<n>, and --nodes is always emitted explicitly. Exceptions: qc-gh200 and ng-dgx-m[0-3] are unified CPU+GPU superchips — no --gpus flag is emitted for them.",
     "ng-dgx-m[0-3] runs Ubuntu; all other partitions run Rocky Linux.",
-    "fx700 is Fujitsu A64FX (aarch64-like ARM). x86_64 binaries will not run there. Use r340 for cross-compilation.",
+    "fx700 is Fujitsu A64FX (aarch64 ARM). x86_64 binaries will not run there. Use r340 to cross-compile.",
     "qc-gh200 and ng-dgx use aarch64 (NVIDIA Grace). x86_64 binaries will not run there.",
-    "Slurm commands require a login shell environment.",
-    "No project/account ID is required by default. Jobs submitted without --account will use the user's default Slurm account."
+    "Slurm commands require a login-shell environment (the middleware provides one for login-node commands).",
+    "No project/account ID is required by default. Jobs submitted without --account use the user's default Slurm account.",
+    "Submitted job scripts are kept under ~/agent/jobs/ on the cluster for auditability."
   ],
   "partitions": {
     "cpu_only": [
-      {"name": "fx700",   "nodes": 31, "cpu": "Fujitsu A64FX",         "arch": "aarch64 (A64FX)", "memory_gb": 32,   "network": "InfiniBand EDR 100Gbps",   "modules": "module load system/fx700 FJSVstclanga",                      "notes": "Cross-compilation environment: r340"},
-      {"name": "genoa",   "nodes": 16, "cpu": "AMD EPYC 9684X",         "arch": "x86_64",          "memory_gb": 768,  "network": "Ethernet 1Gbps",           "modules": "module load system/genoa mpi/openmpi-x86_64",                "notes": "General-purpose CPU"},
-      {"name": "genoa-m", "nodes": 1,  "cpu": "AMD EPYC 9684X x2",      "arch": "x86_64",          "memory_gb": 3072, "network": "Ethernet 1Gbps",           "modules": "module load system/genoa mpi/openmpi-x86_64",                "notes": "Large-memory node (3 TB)"},
-      {"name": "r340",    "nodes": 1,  "cpu": "Intel Xeon E-2134",       "arch": "x86_64",          "memory_gb": 64,   "network": "Ethernet 1Gbps",           "modules": "(none required)",                                            "notes": "Multi-user; cross-compilation for fx700"}
+      {"name": "fx700",   "nodes": 31, "cpu": "Fujitsu A64FX",          "arch": "aarch64 (A64FX)", "memory_gb": 32,   "network": "InfiniBand EDR 100Gbps",   "modules": "module load system/fx700 FJSVstclanga",                      "notes": "Cross-compile on r340"},
+      {"name": "genoa",   "nodes": 16, "cpu": "AMD EPYC 9684X",          "arch": "x86_64",          "memory_gb": 768,  "network": "Ethernet 1Gbps",           "modules": "module load system/genoa mpi/openmpi-x86_64",                "notes": "General-purpose CPU (default partition)"},
+      {"name": "genoa-m", "nodes": 1,  "cpu": "AMD EPYC 9684X x2",       "arch": "x86_64",          "memory_gb": 3072, "network": "Ethernet 1Gbps",           "modules": "module load system/genoa mpi/openmpi-x86_64",                "notes": "Large-memory node (3 TB)"},
+      {"name": "r340",    "nodes": 1,  "cpu": "Intel Xeon E-2134",       "arch": "x86_64",          "memory_gb": 64,   "network": "Ethernet 1Gbps",           "modules": "(none required)",                                            "notes": "Multi-user; cross-compilation environment for fx700"}
     ],
     "nvidia_gpu": [
-      {"name": "a100",        "nodes": 2,  "cpu": "AMD EPYC 7763 x2",         "gpu": "A100 x8",       "memory_gb": 2048, "network": "InfiniBand HDR 200Gbps x8",  "modules": "module load system/a100 nvhpc",         "gpu_flag": "standard --gres or --gpus"},
-      {"name": "b300",        "nodes": 1,  "cpu": "Intel Xeon 6767P x2",      "gpu": "B300 SXM6 x8",  "memory_gb": 2048, "network": "Ethernet 1Gbps",             "modules": "module load system/b300 nvhpc",         "gpu_flag": "--gpus=<n>"},
-      {"name": "ai-h100l",    "nodes": 2,  "cpu": "Intel Xeon Gold 5515+ x2", "gpu": "H100 NVL x1",   "memory_gb": 256,  "network": "Ethernet 1Gbps",             "modules": "module load system/ai-h100l nvhpc",     "gpu_flag": "standard", "restricted": "High Performance Big Data Research Team and Data Management Platform Development Unit only"},
-      {"name": "ai-h100l-pu", "nodes": 2,  "cpu": "Intel Xeon Gold 5515+ x2", "gpu": "H100 NVL x1",   "memory_gb": 256,  "network": "Ethernet 1Gbps",             "modules": "module load system/ai-h100l nvhpc",     "gpu_flag": "standard", "notes": "Shared with ai-h100l; max walltime 30 minutes"},
-      {"name": "ai-h200-brc", "nodes": 1,  "cpu": "Intel Xeon Platinum 8592+ x2", "gpu": "H200 x8",  "memory_gb": 1536, "network": "Ethernet 1Gbps",             "modules": "module load system/ai-h200-brc nvhpc",  "gpu_flag": "--gpus=<n>", "notes": "IB NDR 200Gbps in preparation"},
-      {"name": "ai-l40s",     "nodes": 7,  "cpu": "AMD EPYC 9554 x2",         "gpu": "L40S x8",       "memory_gb": 1536, "network": "Ethernet 1Gbps",             "modules": "module load system/ai-l40s nvhpc",      "gpu_flag": "--gpus=<n>", "notes": "IB NDR 200Gbps in preparation"},
-      {"name": "qc-a100",     "nodes": 2,  "cpu": "AMD EPYC 7713 x2",         "gpu": "A100 x8",       "memory_gb": 4096, "network": "InfiniBand HDR 200Gbps",     "modules": "module load system/qc-a100 nvhpc",      "gpu_flag": "--gpus=<n>"},
-      {"name": "qc-h100",     "nodes": 1,  "cpu": "AMD EPYC 9534 x2",         "gpu": "H100 x4",       "memory_gb": 1536, "network": "InfiniBand HDR 200Gbps",     "modules": "module load system/qc-h100 nvhpc",      "gpu_flag": "standard", "status": "Under repair"},
-      {"name": "qc-gh200",    "nodes": 8,  "cpu": "NVIDIA Grace (aarch64)",    "gpu": "GH200 superchip","memory_gb": 512, "network": "InfiniBand HDR 200Gbps",    "modules": "module load system/qc-gh200 nvhpc",     "gpu_flag": "none — unified superchip"},
-      {"name": "ng-dgx-m0",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",    "gpu": "GB10 Blackwell superchip", "memory_gb": 128, "network": "Ethernet 10Gbps (200Gbps intra-pair)", "modules": "module load system/ng-dgx nvhpc", "gpu_flag": "none — unified superchip", "os": "Ubuntu"},
-      {"name": "ng-dgx-m1",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",    "gpu": "GB10 Blackwell superchip", "memory_gb": 128, "network": "Ethernet 10Gbps (200Gbps intra-pair)", "modules": "module load system/ng-dgx nvhpc", "gpu_flag": "none — unified superchip", "os": "Ubuntu"},
-      {"name": "ng-dgx-m2",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",    "gpu": "GB10 Blackwell superchip", "memory_gb": 128, "network": "Ethernet 10Gbps (200Gbps intra-pair)", "modules": "module load system/ng-dgx nvhpc", "gpu_flag": "none — unified superchip", "os": "Ubuntu"},
-      {"name": "ng-dgx-m3",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",    "gpu": "GB10 Blackwell superchip", "memory_gb": 128, "network": "Ethernet 10Gbps (200Gbps intra-pair)", "modules": "module load system/ng-dgx nvhpc", "gpu_flag": "none — unified superchip", "os": "Ubuntu"}
+      {"name": "a100",        "nodes": 2,  "cpu": "AMD EPYC 7763 x2",             "gpu": "A100 x8",                  "memory_gb": 2048, "network": "InfiniBand HDR 200Gbps x8",              "modules": "module load system/a100 nvhpc",        "gpu_flag": "--gpus=<n>"},
+      {"name": "b300",        "nodes": 1,  "cpu": "Intel Xeon 6767P x2",          "gpu": "B300 SXM6 x8",             "memory_gb": 2048, "network": "Ethernet 1Gbps",                         "modules": "module load system/b300 nvhpc",        "gpu_flag": "--gpus=<n>"},
+      {"name": "ai-h100l",    "nodes": 2,  "cpu": "Intel Xeon Gold 5515+ x2",     "gpu": "H100 NVL x1",              "memory_gb": 256,  "network": "Ethernet 1Gbps",                         "modules": "module load system/ai-h100l nvhpc",    "gpu_flag": "--gpus=<n>", "restricted": "High Performance Big Data Research Team and Data Management Platform Development Unit only"},
+      {"name": "ai-h100l-pu", "nodes": 2,  "cpu": "Intel Xeon Gold 5515+ x2",     "gpu": "H100 NVL x1",              "memory_gb": 256,  "network": "Ethernet 1Gbps",                         "modules": "module load system/ai-h100l nvhpc",    "gpu_flag": "--gpus=<n>", "notes": "Same nodes as ai-h100l, open to all users; max walltime 30 minutes"},
+      {"name": "ai-h200-brc", "nodes": 1,  "cpu": "Intel Xeon Platinum 8592+ x2", "gpu": "H200 x8",                  "memory_gb": 1536, "network": "Ethernet 1Gbps",                         "modules": "module load system/ai-h200-brc nvhpc", "gpu_flag": "--gpus=<n>", "notes": "IB NDR 200Gbps in preparation"},
+      {"name": "ai-l40s",     "nodes": 7,  "cpu": "AMD EPYC 9554 x2",             "gpu": "L40S x8",                  "memory_gb": 1536, "network": "Ethernet 1Gbps",                         "modules": "module load system/ai-l40s nvhpc",     "gpu_flag": "--gpus=<n>", "notes": "IB NDR 200Gbps in preparation"},
+      {"name": "qc-a100",     "nodes": 2,  "cpu": "AMD EPYC 7713 x2",             "gpu": "A100 x8",                  "memory_gb": 4096, "network": "InfiniBand HDR 200Gbps",                 "modules": "module load system/qc-a100 nvhpc",     "gpu_flag": "--gpus=<n>"},
+      {"name": "qc-h100",     "nodes": 1,  "cpu": "AMD EPYC 9534 x2",             "gpu": "H100 x4",                  "memory_gb": 1536, "network": "InfiniBand HDR 200Gbps",                 "modules": "module load system/qc-h100 nvhpc",     "gpu_flag": "--gpus=<n>", "status": "Under repair"},
+      {"name": "qc-gh200",    "nodes": 8,  "cpu": "NVIDIA Grace (aarch64)",       "gpu": "GH200 superchip",          "memory_gb": 512,  "network": "InfiniBand HDR 200Gbps",                 "modules": "module load system/qc-gh200 nvhpc",    "gpu_flag": "none - unified superchip"},
+      {"name": "ng-dgx-m0",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",       "gpu": "GB10 Blackwell superchip", "memory_gb": 128,  "network": "Ethernet 10Gbps (200Gbps intra-pair)",   "modules": "module load system/ng-dgx nvhpc",      "gpu_flag": "none - unified superchip", "os": "Ubuntu"},
+      {"name": "ng-dgx-m1",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",       "gpu": "GB10 Blackwell superchip", "memory_gb": 128,  "network": "Ethernet 10Gbps (200Gbps intra-pair)",   "modules": "module load system/ng-dgx nvhpc",      "gpu_flag": "none - unified superchip", "os": "Ubuntu"},
+      {"name": "ng-dgx-m2",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",       "gpu": "GB10 Blackwell superchip", "memory_gb": 128,  "network": "Ethernet 10Gbps (200Gbps intra-pair)",   "modules": "module load system/ng-dgx nvhpc",      "gpu_flag": "none - unified superchip", "os": "Ubuntu"},
+      {"name": "ng-dgx-m3",   "nodes": 2,  "cpu": "NVIDIA Grace (aarch64)",       "gpu": "GB10 Blackwell superchip", "memory_gb": 128,  "network": "Ethernet 10Gbps (200Gbps intra-pair)",   "modules": "module load system/ng-dgx nvhpc",      "gpu_flag": "none - unified superchip", "os": "Ubuntu"}
     ],
     "amd_gpu": [
-      {"name": "mi100",    "nodes": 1, "cpu": "AMD EPYC 7713 x2", "gpu": "MI100 x8",  "memory_gb": 1024, "network": "Ethernet 1Gbps",         "modules": "module load system/mi100 rocm"},
-      {"name": "qc-mi210", "nodes": 2, "cpu": "AMD EPYC 9554 x2", "gpu": "MI210 x1",  "memory_gb": 1536, "network": "InfiniBand HDR 200Gbps",  "modules": "module load system/qc-mi210 rocm", "status": "GPU setup in progress"},
-      {"name": "qc-mi250", "nodes": 4, "cpu": "AMD EPYC 7713 x2", "gpu": "MI250 x8",  "memory_gb": 1024, "network": "InfiniBand HDR 200Gbps",  "modules": "module load system/qc-mi250 rocm"},
-      {"name": "fs-mi300a","nodes": 1, "cpu": "— (APU)",           "gpu": "MI300A x4", "memory_gb": 512,  "network": "InfiniBand HDR 200Gbps",  "modules": "module load system/fs-mi300a rocm", "notes": "Unified CPU+GPU memory (APU)"},
-      {"name": "fs-mi300x","nodes": 1, "cpu": "AMD EPYC 9534 x2", "gpu": "MI300X x8", "memory_gb": 1536, "network": "InfiniBand HDR 200Gbps",  "modules": "module load system/fs-mi300x rocm"}
+      {"name": "mi100",    "nodes": 1, "cpu": "AMD EPYC 7713 x2", "gpu": "MI100 x8",  "memory_gb": 1024, "network": "Ethernet 1Gbps",        "modules": "module load system/mi100 rocm"},
+      {"name": "qc-mi210", "nodes": 2, "cpu": "AMD EPYC 9554 x2", "gpu": "MI210 x1",  "memory_gb": 1536, "network": "InfiniBand HDR 200Gbps", "modules": "module load system/qc-mi210 rocm", "status": "GPU setup in progress"},
+      {"name": "qc-mi250", "nodes": 4, "cpu": "AMD EPYC 7713 x2", "gpu": "MI250 x8",  "memory_gb": 1024, "network": "InfiniBand HDR 200Gbps", "modules": "module load system/qc-mi250 rocm"},
+      {"name": "fs-mi300a","nodes": 1, "cpu": "- (APU)",          "gpu": "MI300A x4", "memory_gb": 512,  "network": "InfiniBand HDR 200Gbps", "modules": "module load system/fs-mi300a rocm", "notes": "APU: CPU and GPU share one HBM pool (512 GB combined)"},
+      {"name": "fs-mi300x","nodes": 1, "cpu": "AMD EPYC 9534 x2", "gpu": "MI300X x8", "memory_gb": 1536, "network": "InfiniBand HDR 200Gbps", "modules": "module load system/fs-mi300x rocm"}
     ],
     "intel_gpu": [
       {"name": "qc-pvc", "nodes": 2, "cpu": "Intel Xeon Platinum 8470 x2", "gpu": "Data Center GPU Max 1550 x8", "memory_gb": 2048, "network": "InfiniBand HDR 200Gbps", "modules": "module load system/qc-pvc  (or: source /opt/intel/oneapi/setvars.sh)"}
@@ -47,7 +48,8 @@
   },
   "default_partition": "genoa",
   "storage": {
-    "home": "/home/<user>"
+    "home": "/home/<user>",
+    "agent_jobs_dir": "~/agent/jobs"
   },
-  "support": "login.cloud.r-ccs.riken.jp (see R-CCS Cloud portal for tickets)"
+  "support": "login.cloud.r-ccs.riken.jp (see the R-CCS Cloud portal for tickets)"
 }

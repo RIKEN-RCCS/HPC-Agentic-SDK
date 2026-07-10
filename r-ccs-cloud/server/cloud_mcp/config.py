@@ -1,91 +1,59 @@
-"""Configuration for the RCCS-Cloud MCP servers.
+"""Settings for the R-CCS Cloud MCP plugin.
 
-Settings come from, in order of precedence:
-  1. Environment variables (RCCS_CLOUD_*)
-  2. The user config file ~/.rccs-cloud/config.json (path override: RCCS_CLOUD_CONFIG)
-  3. Defaults
+This module is a thin registration layer over `hpc_agent_core.config`: it
+calls `configure(...)` once, at import time, before any other
+`hpc_agent_core` module that reads config is used, then re-exports the
+registered values for readability at call sites.
 
-The config file is created with the help of the `rccs-cloud-configuring` skill:
+Settings resolve in order: environment variable > the user config file >
+the registered default. The user config file lives at the common location
+`~/.hpc-agent/rccs_cloud.json` (see `hpc_agent_core.config.config_path()`).
+The legacy per-machine path `~/.rccs-cloud/config.json` is still honored if
+it is the only one that exists, so anyone who configured an earlier build of
+this plugin keeps working without changes.
+
+Example config file:
 
     {
       "ssh": {"host": "rccs-cloud"},
       "embedding": {"api_key": "..."}
     }
 
-`ssh.host` is an alias from ~/.ssh/config or a plain user@hostname; key-based
+`ssh.host` is a `~/.ssh/config` alias or a plain `user@hostname`; key-based
 auth is assumed (no credentials are stored here). The embedding endpoint and
-model are hardcoded constants (EMBED_BASE_URL / EMBED_MODEL) — changing them
-requires a full re-ingest of the docs index.
+model are fixed per machine (the committed docs-index vectors are tied to the
+model) — only the API key is user-configurable.
 """
 import json
-import os
-from contextlib import ExitStack
 from functools import lru_cache
-from importlib import resources
-from pathlib import Path
 
-CONFIG_PATH = Path(os.environ.get("RCCS_CLOUD_CONFIG", "~/.rccs-cloud/config.json")).expanduser()
+from hpc_agent_core import config as _core
 
+_core.configure(
+    env_prefix="RCCS_CLOUD",            # -> RCCS_CLOUD_HOST, RCCS_CLOUD_CONFIG, RCCS_CLOUD_EMBED_API_KEY
+    default_host="rccs-cloud",           # ssh.host fallback: an alias in ~/.ssh/config, or user@hostname
+    package="cloud_mcp",                 # matches this package's actual name (for bundled data)
+    embed_base_url="http://llm.ai.r-ccs.riken.jp:11434/v1",  # shared RIKEN R-CCS endpoint
+    embed_model="bge-m3:567m",
+    docs_cite_url="",                    # blank: the guide is our own words; no live site we're confident to cite
+    config_dir_name=".rccs-cloud",       # legacy path ~/.rccs-cloud/config.json, kept working for existing users
+    # No computer_defaults: the login node works with the shared bash
+    # login-shell defaults (see hpc_agent_core.config._BASE_COMPUTER_DEFAULTS).
+)
 
-def _file_config() -> dict:
-    """The parsed config file, or {} if absent. Raises on malformed JSON."""
-    try:
-        with open(CONFIG_PATH) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Malformed config file {CONFIG_PATH}: {e}") from e
-
-
-def ssh_host() -> str:
-    """SSH destination for the R-CCS Cloud login node (alias or user@hostname)."""
-    return (os.environ.get("RCCS_CLOUD_HOST")
-            or _file_config().get("ssh", {}).get("host")
-            or "rccs-cloud")
-
-
-EMBED_BASE_URL = "http://llm.ai.r-ccs.riken.jp:11434/v1"
-EMBED_MODEL = "bge-m3:567m"
-
-
-def embed_api_key() -> str:
-    """API key for the embedding endpoint (the only user-configurable embedding setting).
-
-    Resolved in order: RCCS_CLOUD_EMBED_API_KEY, then RCCS_EMBED_API_KEY, then
-    embedding.api_key in the config file. RCCS_EMBED_API_KEY is a shared fallback:
-    the embedding endpoint is common RIKEN R-CCS infrastructure, so a user running
-    several R-CCS plugins (e.g. this and the Hokusai or Rikyu plugins) can export
-    the one key once instead of repeating it in each plugin's config.
-    Empty string means no auth header is sent.
-    """
-    file = _file_config().get("embedding", {})
-    return (os.environ.get("RCCS_CLOUD_EMBED_API_KEY")
-            or os.environ.get("RCCS_EMBED_API_KEY")
-            or file.get("api_key") or "")
-
-
-# --- Static data ------------------------------------------------------------
-
-_RESOURCE_STACK = ExitStack()
-
-
-def _bundled_data_dir() -> Path:
-    """Filesystem path to package data, including zip-safe extraction fallback."""
-    data = resources.files("cloud_mcp") / "data"
-    return _RESOURCE_STACK.enter_context(resources.as_file(data))
-
-
-_DATA_DIR = _bundled_data_dir()
-
-DOCS_INDEX_DIR = Path(os.environ.get("RCCS_CLOUD_DOCS_INDEX", _DATA_DIR / "docs_index"))
-DOCS_GUIDE_PATH = Path(os.environ.get("RCCS_CLOUD_DOCS_GUIDE", _DATA_DIR / "cloud_guide.md"))
-DOCS_SITE_BASE = "https://cloud.r-ccs.riken.jp/en/"
+# Re-export the registered functions/values the rest of the package imports
+# from here (kept for readability — these are just the core's registered API):
+ssh_host = _core.ssh_host
+embed_api_key = _core.embed_api_key
+CONFIG_PATH = _core.config_path()
+EMBED_BASE_URL = _core.embed_base_url()
+EMBED_MODEL = _core.embed_model()
+DATA_DIR = _core.data_dir()
 
 
 @lru_cache(maxsize=1)
 def load_cluster_config() -> dict:
-    """Load the static R-CCS Cloud cluster description (partitions, modules, storage)."""
-    path = Path(os.environ.get("RCCS_CLOUD_CLUSTER_CONFIG", _DATA_DIR / "cloud_config.json"))
-    with open(path) as f:
+    """The R-CCS Cloud's static facts (partitions, modules, storage) —
+    bundled package data, not the user's config file."""
+    with open(DATA_DIR / "cloud_config.json") as f:
         return json.load(f)

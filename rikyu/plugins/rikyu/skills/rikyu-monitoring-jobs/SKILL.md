@@ -16,9 +16,9 @@ description: Use when the user asks about the status, progress, output, history,
 1. Stdout/stderr default to `<workdir>/slurm-<job_id>.out` (workdir is in the status record). Read with `fs_tail` (or `fs_head`/`fs_view`).
 2. Common Rikyu failure modes:
    - **x86_64 binary on aarch64 nodes** → "Exec format error" in output.
-   - **OOM** → `native_state` OUT_OF_MEMORY; the fix is a bigger partition share (e.g. `1n1gpu` → `1n2gpu` doubles memory and CPUs).
-   - **Time limit** → `native_state` TIMEOUT; raise duration (max 96h) or move to `4n4gpu-p`.
-   - **Lost scratch output** → results written to `$USER_SCRATCH_DIR` but not copied back before the job ended are unrecoverable.
+   - **OOM** → `native_state` OUT_OF_MEMORY; the fix is requesting more GPUs (each one brings 36 more CPU cores and ~400GB more memory as a fixed bundle — you can't raise memory independently of GPU count).
+   - **Time limit** → `native_state` TIMEOUT; raise `duration` (max 96h — there's no longer-running exception).
+   - **Lost scratch output** → results written to `/tmp` on the compute node but not copied back to `/home/<user>` or `/data1/<group>` before the job ended are unrecoverable.
 3. The exact script that was submitted is kept in `~/.rikyu/jobs/` — `fs_view` it when debugging.
 
 ## Live GPU utilization

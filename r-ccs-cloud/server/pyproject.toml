@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rccs-cloud-mcp"
-version = "0.1.7"
-description = "MCP servers for the RIKEN R-CCS Cloud: Slurm interaction and documentation search."
+version = "0.2.1"
+description = "MCP servers for the RIKEN R-CCS Cloud: Slurm interaction and documentation search, built as a thin skin over hpc-agent-core."
 requires-python = ">=3.10"
 dependencies = [
+    # Pinned to a compatible range: a future core release could change the
+    # backend/config surface this plugin wires into. Current release: 0.4.0.
+    "hpc-agent-core>=0.4,<0.5",
     "mcp",
-    "remotemanager",
-    "httpx",
-    "numpy",
 ]
 
 [project.scripts]

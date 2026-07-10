@@ -23,8 +23,13 @@ what's missing or being changed.
 
 1. **SSH** — ask how they reach the Rikyu login node:
    - An alias in `~/.ssh/config` (recommended) → `"host": "<alias>"`.
-   - Otherwise username + hostname → `"host": "user@login01.ai.r-ccs.riken.jp"`,
+   - Otherwise username + hostname → `"host": "user@login.rikyu.r-ccs.riken.jp"`,
      and offer to add a proper alias block to `~/.ssh/config` instead.
+   - If the key isn't registered yet, they'll need to generate one (Ed25519
+     recommended; ECDSA P-521 or RSA ≥2048-bit also accepted) and register
+     the public key through Rikyu's Open OnDemand web portal ("SSH Public
+     Key" page) before the first login — point them to that portal by name,
+     not a URL, since it isn't one we should be linking to here.
    - Verify with: `ssh -o BatchMode=yes <host> 'echo ok'` (BatchMode matters —
      the MCP server cannot answer password prompts; key-based auth is required).
 2. **Embedding API key** (optional — skippable, BM25 fallback works). Docs search

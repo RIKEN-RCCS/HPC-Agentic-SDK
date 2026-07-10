@@ -1,61 +1,70 @@
-# HokusaiAgent
+# HOKUSAI BigWaterfall2 (HBW2) Agent
 
-Claude Code and Codex plugin for the RIKEN **HOKUSAI BigWaterfall2 (HBW2)** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
+A Claude Code / Codex plugin for **HOKUSAI BigWaterfall2 (HBW2)**, the RIKEN
+R-CCS CPU-first Slurm cluster (312-node MPC, 2-node large-memory LMC, and a
+small 4-node H100 GPU server). It lets an agent submit and monitor Slurm
+jobs, manage files, and search HBW2's documentation, over SSH.
 
-HBW2 is a CPU-first system: the 312-node Massively Parallel Computer (MPC) and the large-memory server (LMC) do most of the work, with a small 4-node H100 GPU server for postprocessing.
+Built as a thin machine-specific "skin" on top of
+[`hpc-agent-core`](https://pypi.org/project/hpc-agent-core/) — see
+[hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md)
+for the general porting guide this repo follows, and
+[`AGENTS.md`](AGENTS.md) for the design rules and cluster facts an agent
+working on this repo should know.
 
 ## Configure
 
-Settings live in `~/.hokusai/config.json`:
+Settings live in `~/.hpc-agent/hokusai.json` (the common directory shared by
+every hpc-agent-core plugin):
 
 ```json
 {
-  "ssh": {"host": "hokusai"},
-  "account": "RB999999"
+  "ssh": { "host": "hokusai" },
+  "defaults": { "account": "RB99999" }
 }
 ```
 
-- `ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required; register your key on the [HBW2 Portal](https://hokusai.riken.jp/hbw2/)). `hokusai.riken.jp` round-robins to `hokusai1..4`. The env var `HOKUSAI_HOST` overrides the file.
-- `account` is your project ID (e.g. `RB999999`), required for job execution. A JobSpec can override it per job. `HOKUSAI_ACCOUNT` overrides the file.
+- `ssh.host` — an alias in `~/.ssh/config` or `user@hokusai.riken.jp`
+  (register your SSH key via the portal `https://hokusai.riken.jp/hbw2/`
+  first; auth is key-only). `HOKUSAI_HOST` overrides the file.
+- `defaults.account` — the project charged when a job names none;
+  **mandatory** on HBW2 (`RB…` RIKEN or `HP…` HPCI). `HOKUSAI_ACCOUNT`
+  overrides the file.
+- A legacy `~/.hokusai/config.json` is still read if it's the only config
+  present.
 
-For documentation search, add your API key for the shared RIKEN embedding service:
+For documentation search, add your API key for the shared RIKEN embedding
+service:
 
 ```json
 {
-  "ssh": {"host": "hokusai"},
-  "account": "RB999999",
-  "embedding": {"api_key": "..."}
+  "ssh": { "host": "hokusai" },
+  "defaults": { "account": "RB99999" },
+  "embedding": { "api_key": "..." }
 }
 ```
 
-The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.
+`HOKUSAI_EMBED_API_KEY` (or the shared `RCCS_EMBED_API_KEY`) sets the key.
+With it, docs search uses semantic (vector) matching; without it — or off
+the RIKEN network — it falls back to BM25 keyword search over the same
+content. The `hokusai-configuring` skill walks through this interactively.
 
 ## Install
 
 ### Prerequisite: uv
 
 The plugin starts its MCP servers with `uv tool run` from this repository's
-`main` branch, so `uv` must be installed and available on your PATH before
-Claude Code or Codex starts the plugin.
-
-Common install options:
+`main` branch, so [`uv`](https://docs.astral.sh/uv/) must be installed and
+on your `PATH` before Claude Code or Codex starts the plugin:
 
 ```bash
-brew install uv
+brew install uv        # or: curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-or:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-After installing uv, restart Claude Code or Codex so the plugin process inherits
-the updated PATH.
+Restart Claude Code or Codex after installing uv so the plugin process
+inherits the updated `PATH`.
 
 ### Claude Code
-
-Install in Claude Code:
 
 ```
 /plugin marketplace add RIKEN-RCCS/Hokusai-Agent
@@ -65,8 +74,6 @@ Install in Claude Code:
 
 ### Codex
 
-Install in Codex:
-
 ```
 codex plugin marketplace add RIKEN-RCCS/Hokusai-Agent
 ```
@@ -74,9 +81,12 @@ codex plugin marketplace add RIKEN-RCCS/Hokusai-Agent
 Then open `/plugins`, install `hokusai`, start a new thread, and run
 `/hokusai-demo` to verify the connection end-to-end.
 
-## Manual Install (any MCP-compatible client)
+### Manual (any MCP-compatible client)
 
-### Option A — Using Hatch!
+Both options below only register the MCP servers — copy `plugins/hokusai/skills/`
+into wherever your client loads skills from too (this varies by client).
+
+#### Option A — Using Hatch!
 
 [Hatch!](https://github.com/CrackingShells/Hatch) registers MCP servers on any
 supported host from a single command. Install it once, then configure both
@@ -102,7 +112,7 @@ To replicate the same configuration to additional hosts:
 hatch mcp sync --from-host <host> --to-host cursor,vscode
 ```
 
-### Option B — Edit `.mcp.json` directly
+#### Option B — Edit `.mcp.json` directly
 
 Create or edit `.mcp.json` in your project root:
 
@@ -125,8 +135,28 @@ Create or edit `.mcp.json` in your project root:
 
 ## Verify
 
-Run the doctor check to verify connectivity:
-
 ```bash
-uv tool run --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-doctor
+uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-doctor
 ```
+
+All lines should read `✓` except possibly embedding (falls back to keyword
+search outside RIKEN's network — not blocking).
+
+## Development
+
+```
+cd server
+uv run python -m hokusai_mcp.doctor        # health check
+uv run python tests/smoke.py               # read-only MCP stdio test
+uv run python tests/smoke.py --job         # + submits a real tiny job
+```
+
+Rebuilding the docs index after editing `hokusai_guide.md`:
+
+```
+cd server
+uv run python -m hpc_agent_core.rag.ingest
+```
+
+Commit the resulting `hokusai_mcp/data/docs_index/` (chunks.json, and
+embeddings.npy if an embedding API key was configured at ingest time).

@@ -1,31 +1,53 @@
 ---
 name: hokusai-monitoring-jobs
-description: Use when the user asks about the status, progress, output, history, or failure of jobs on HOKUSAI BigWaterfall2 (HBW2), or about queue and node availability.
+description: Track and troubleshoot jobs on HOKUSAI BigWaterfall2 (HBW2). Use when the user asks about a job's status, why a job is waiting, wants to cancel a job, read its console output, or diagnose a failed job.
 ---
 
-# Monitoring jobs on HOKUSAI BigWaterfall2 (HBW2)
+# Monitoring jobs on HOKUSAI (HBW2)
 
-## Status checks
+HBW2 has full Slurm accounting, so status and recent history come from the
+scheduler live.
 
-- **One job**: `get_job_status` — `state` is normalized (QUEUED/ACTIVE/COMPLETED/FAILED/CANCELED); `native_state` is Slurm's (PD/R/CG/CD/CA/F/NF/TO…). A QUEUED job's `reason` field says why it waits (`Resources`, `Priority`, …). HBW2 orders jobs by per-project fair-share priority.
-- **My recent jobs**: `get_job_statuses` with an empty list (last 2 days), or pass specific IDs.
-- **Cluster availability**: `get_resources` — per-partition allocated/idle/other/total node counts. Idle nodes can start jobs immediately.
-- **Core-time budget**: `run_command_on_cluster("listcpu -p <project>")` — jobs are rejected once a project's allocated core-time is used up.
+## Status
 
-## Job output and failure triage
+- `get_job_status(job_id)` — one job's normalized state (queued / active /
+  completed / failed / canceled) plus scheduler detail (partition, nodes,
+  elapsed, exit code) in `meta_data`.
+- `get_job_statuses([...])` — several jobs at once; with an **empty list**,
+  your recent jobs (last ~2 days).
+- For a queued job, `status.message` carries the wait reason. HBW2 orders
+  jobs by **fair-share priority**, so a job can wait because your project's
+  recent usage is high, not because the cluster is full — check
+  `get_projects` for your fair-share standing and `get_resources` for live
+  occupancy.
 
-1. Stdout/stderr default to `<workdir>/slurm-<job_id>.out` (workdir is in the status record). Read with `fs_tail` (or `fs_head`/`fs_view`).
-2. Common HBW2 failure modes:
-   - **Missing account / no core-time** → job rejected or never starts; check `listcpu -p <project>` and that `--account` is set.
-   - **OOM** → `native_state` OUT_OF_MEMORY; raise `resources.memory`, reduce ranks/threads per node, or move large-memory work to the `lmc` partition.
-   - **Time limit** → `native_state` TIMEOUT; raise `duration` (max 24h on `mpc`, 72h on `mpc_l`).
-   - **Wrong thread/rank count** → performance collapse when `OMP_NUM_THREADS` wasn't set; check the script and the `--cpus-per-task`/`OMP_NUM_THREADS` pairing.
-   - **Module conflict** → e.g. loading `openmpi` while `intelmpi` is loaded; `module purge` first.
-3. The exact script that was submitted is kept in `~/.hokusai/jobs/` — `fs_view` it when debugging.
+## Console output
 
-## Live job inspection
+`read_job_output(job_id)` reads `slurm-<jobid>.out` from the directory the
+job was launched from. Pass `tail_lines=N` for just the tail of a long or
+still-running job.
 
-For an ACTIVE job, peek at its node with:
-`run_command_on_cluster("squeue --jobs=<id> --long")` for the node list, then
-`run_command_on_cluster("srun --overlap --jobid <id> <command>")` for a quick
-check on the allocated node (e.g. `top -bn1`, or `nvidia-smi` for a GPU job).
+## Canceling
+
+`cancel_job(job_id)` sends scancel and reports the resulting state.
+
+## Modifying
+
+`update_job(job_id, hold=True|False, time_limit="HH:MM:SS")` holds/releases a
+pending job or changes its wall-time limit (subject to partition maxima).
+
+## Diagnosing a failure
+
+When a job misbehaves it's usually one of:
+
+- **No project / core-time exhausted** — check `get_projects`; the project's
+  new jobs stop starting when its allowance is spent.
+- **Out of memory** (native state `OUT_OF_MEMORY`) — raise the memory share
+  or move to `lmc`.
+- **Hit wall time** (`TIMEOUT`) — raise `duration` or use `mpc_l`.
+- **Threads unset** — performance collapse; set `OMP_NUM_THREADS`.
+- **Conflicting MPI modules** — Intel MPI and Open MPI loaded together; load
+  one only.
+
+Read the job's `read_job_output` and its `status.meta_data.native_state` to
+point at which.

@@ -1,25 +1,29 @@
 """MCP server for the R-CCS Cloud, modeled on the IRI Facility API.
 
-Tool groups mirror the IRI resource groups (facility, status, compute,
-filesystem); each operation is executed on the R-CCS Cloud login node over
-SSH via remotemanager. Coverage of the full API is tracked in IRI_CHECKLIST.md
-at the repo root.
+Tool groups mirror the IRI resource groups (facility, status, account,
+compute, filesystem); each operation runs on the R-CCS Cloud login node over
+SSH via `hpc_agent_core.middleware`. Coverage of the full API is tracked in
+IRI_CHECKLIST.md at the repo root.
+
+Tools are thin verbs — a short call into `cloud_mcp.compute` (the scheduler
+backend) or `hpc_agent_core.middleware` (the SSH layer). Workflow knowledge
+(when to pick which partition, how to read a failed job) lives in the skills
+under plugins/rccs-cloud/skills/, not in long docstrings here.
 """
 import shlex
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from cloud_mcp import compute, config
-from cloud_mcp.middleware import (
+from hpc_agent_core.middleware import (
     download_file,
     quote_path,
     run_command,
     upload_file,
-    write_remote_file,
 )
-from cloud_mcp.models import CompressionType, Job, JobSpec
-from cloud_mcp.serving import serve
+from hpc_agent_core.models import CompressionType, Job, JobSpec
+from hpc_agent_core.serving import serve
+from cloud_mcp import compute, config  # noqa: F401 -- config registers settings via configure()
 
 mcp = FastMCP("rccs-cloud-hpc")
 
@@ -38,9 +42,10 @@ def get_facility() -> dict:
     """Describe the R-CCS Cloud facility: partitions, modules, storage, conventions.
 
     Static reference data (no SSH round-trip). The R-CCS Cloud is a
-    heterogeneous cluster with many partition families spanning CPU-only,
-    NVIDIA GPU, AMD GPU, and Intel GPU hardware. Each partition has its own
-    required system module. (IRI: GET /facility)
+    heterogeneous cluster with partition families spanning CPU-only, NVIDIA
+    GPU, AMD GPU, and Intel GPU hardware; each partition has its own required
+    system module. For *live* occupancy ("will a job start soon") use
+    get_resources instead. (IRI: GET /facility)
     """
     return config.load_cluster_config()
 
@@ -52,51 +57,32 @@ def get_resources() -> list[dict]:
     """List compute resources and their live state. (IRI: GET /status/resources)
 
     Returns the R-CCS Cloud resource with a per-partition node-state summary
-    (allocated/idle/other/total) from sinfo.
+    (allocated/idle/other/total) from a live `sinfo` call — not the static
+    facility data. Idle nodes can start a job immediately.
     """
     return [_resource_detail()]
 
 
 @mcp.tool()
 def get_resource(resource_id: str = RESOURCE_ID) -> dict:
-    """Get detailed state for a single resource. (IRI: GET /status/resources/{resource_id})
+    """Get detailed live state for a single resource. (IRI: GET /status/resources/{resource_id})
 
-    Includes per-partition node counts and any drained/draining nodes with
-    their reasons (from sinfo -R).
+    Includes per-partition node counts plus any drained/draining nodes and
+    their reasons (from `sinfo -R`).
     """
     _check_resource(resource_id)
     return _resource_detail(include_drain=True)
 
 
 def _resource_detail(include_drain: bool = False) -> dict:
-    summary = run_command("sinfo --summarize --format='%P|%a|%l|%F'")
-    partitions = []
-    for line in summary.strip().splitlines():
-        parts = line.split("|")
-        if len(parts) != 4 or parts[0] == "PARTITION":
-            continue
-        alloc, idle, other, total = parts[3].split("/")
-        partitions.append({
-            "partition": parts[0].rstrip("*"),
-            "available": parts[1],
-            "time_limit": parts[2],
-            "nodes": {"allocated": int(alloc), "idle": int(idle),
-                      "other": int(other), "total": int(total)},
-        })
     resource: dict = {
         "id": RESOURCE_ID,
         "type": "compute",
         "description": "RIKEN R-CCS Cloud (heterogeneous: A64FX, x86_64, aarch64, NVIDIA/AMD/Intel GPUs)",
-        "partitions": partitions,
+        "partitions": compute.get_live_resources(),
     }
     if include_drain:
-        drain = run_command("sinfo -R --format='%N|%T|%E' --noheader")
-        drained = []
-        for line in drain.strip().splitlines():
-            parts = line.split("|", 2)
-            if len(parts) == 3:
-                drained.append({"nodes": parts[0], "state": parts[1], "reason": parts[2]})
-        resource["drained_nodes"] = drained
+        resource["drained_nodes"] = compute.get_drained_nodes()
     return resource
 
 
@@ -122,11 +108,11 @@ def get_projects() -> list[dict]:
     """List projects (Slurm accounts) the current user belongs to.
     (IRI: GET /account/projects)
 
-    Each project has an id (account name) used in JobAttributes.account.
+    Each project's id is the account name usable in JobAttributes.account.
+    The R-CCS Cloud does not require an account — jobs submitted without one
+    use the user's default Slurm account.
     """
-    output = run_command(
-        "sacctmgr show associations user=$USER --parsable2 --noheader"
-    )
+    output = run_command("sacctmgr show associations user=$USER --parsable2 --noheader")
     return _parse_projects(output)
 
 
@@ -135,8 +121,7 @@ def get_project(project_id: str) -> dict:
     """Get details for a single project (Slurm account).
     (IRI: GET /account/projects/{id})
     """
-    projects = get_projects()
-    for p in projects:
+    for p in get_projects():
         if p["id"] == project_id:
             return p
     raise ValueError(f"Project '{project_id}' not found for current user")
@@ -148,16 +133,17 @@ def get_project(project_id: str) -> dict:
 def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
     """Submit a job described by a JobSpec. (IRI: POST /compute/job/{resource_id})
 
-    The spec is rendered as an sbatch script (kept under ~/.rccs-cloud/jobs/
-    on the cluster for auditability) and submitted. Returns the job_id and
-    the script path.
+    Show the user the spec (or describe it) before submitting, unless they
+    asked to just run it. The spec is rendered as an sbatch script (kept
+    under ~/agent/jobs/ on the cluster for auditability) and submitted;
+    returns {job_id, script_path}.
 
     R-CCS Cloud notes:
-    - attributes.queue_name picks the partition and therefore the hardware family.
-    - source /etc/profile is emitted automatically; do not add it to executable.
+    - attributes.queue_name picks the partition and thus the hardware family.
+    - `source /etc/profile` is emitted automatically; do not add it to executable.
     - Put module loads at the start of executable, e.g.
       'module load system/genoa mpi/openmpi-x86_64 && srun ./app'.
-    - resources.gpus requests --gpus=<n>; omit for qc-gh200 / ng-dgx-m[0-3].
+    - resources.gpus requests --gpus=<n>; omit it for qc-gh200 / ng-dgx-m[0-3].
     """
     _check_resource(resource_id)
     return compute.submit(spec)
@@ -165,12 +151,12 @@ def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
 
 @mcp.tool()
 def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
-    """Get the normalized status of one job. (IRI: GET /compute/status/...)
+    """Get the normalized status of one job. (IRI: GET /compute/status/{rid}/{job_id})
 
-    state is the normalized IRI state (QUEUED/ACTIVE/COMPLETED/FAILED/
-    CANCELED); native_state is Slurm's. For queued jobs, reason explains
-    the wait. Job stdout defaults to <workdir>/slurm-<job_id>.out — read it
-    with fs_tail or fs_view.
+    state is the normalized IRI state (queued/active/completed/failed/
+    canceled); meta_data.native_state is Slurm's. For a queued job, message
+    explains the wait. Job stdout defaults to <workdir>/slurm-<job_id>.out —
+    read it with fs_tail or fs_view.
     """
     _check_resource(resource_id)
     jobs = compute.get_statuses([job_id])
@@ -181,8 +167,8 @@ def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
 
 @mcp.tool()
 def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list[Job]:
-    """Get statuses for several jobs at once, or recent jobs when job_ids is
-    empty. (IRI: POST /compute/status/{resource_id})
+    """Statuses for several jobs at once, or the current user's recent jobs
+    (last ~2 days) when job_ids is empty. (IRI: POST /compute/status/{resource_id})
     """
     _check_resource(resource_id)
     if job_ids:
@@ -202,7 +188,7 @@ def update_job(
 ) -> Job:
     """Update a queued or running job. (IRI: PUT /compute/job/{resource_id}/{job_id})
 
-    All fields are optional — only supplied ones are changed.
+    Only supplied fields change.
     time_limit: new wall time as HH:MM:SS or D-HH:MM:SS (works on running jobs too).
     partition, account, reservation: only valid while the job is still queued.
     """
@@ -227,7 +213,8 @@ def update_job(
 @mcp.tool()
 def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> Job | str:
     """Cancel a queued or running job and report its resulting state.
-    (IRI: DELETE /compute/cancel/{resource_id}/{job_id})
+    (IRI: DELETE /compute/cancel/{resource_id}/{job_id}) Confirm with the
+    user before cancelling.
     """
     _check_resource(resource_id)
     return compute.cancel(job_id)
@@ -251,7 +238,7 @@ def fs_stat(path: str) -> str:
 
 @mcp.tool()
 def fs_view(path: str) -> str:
-    """Read a whole text file on the cluster (output capped at 200KB).
+    """Read a whole text file on the cluster (output capped at 200 KB).
     (IRI: GET /filesystem/view) For large files use fs_head/fs_tail.
     """
     return run_command(f"cat {quote_path(path)}")
@@ -280,32 +267,33 @@ def fs_mkdir(path: str) -> str:
 
 @mcp.tool()
 def fs_upload(path: str, local_path: str) -> dict:
-    """Upload a local file to the cluster. (IRI: POST /filesystem/upload)
+    """Upload a local file to the cluster. (IRI: POST /filesystem/upload — deviation)
 
-    Transfers local_path → path on the cluster via rsync or scp.
-    Creates remote parent directories as needed. No size limit.
-    Returns {remote_path, bytes, sha256, verified, transport}.
+    Transfers local_path -> path on the cluster via rsync (scp fallback if
+    rsync < 3.0), creating remote parent directories. No size limit. Returns
+    {remote_path, bytes, sha256, verified, transport}. Deliberately diverges
+    from IRI's multipart shape — see IRI_CHECKLIST.md.
     """
     return upload_file(Path(local_path), path)
+
+
+@mcp.tool()
+def fs_download(path: str, local_path: str | None = None) -> dict:
+    """Download a file from the cluster to local disk. (IRI: GET /filesystem/download — deviation)
+
+    Transfers path -> local_path via rsync (scp fallback if rsync < 3.0). No
+    size limit. local_path defaults to the filename in the current working
+    directory. Returns {local_path, bytes, sha256, verified, transport}.
+    Deliberately diverges from IRI's base64-in-body shape — see IRI_CHECKLIST.md.
+    """
+    dest = Path(local_path) if local_path else Path.cwd() / Path(path).name
+    return download_file(path, dest)
 
 
 @mcp.tool()
 def fs_checksum(path: str) -> str:
     """SHA-256 checksum of a file on the cluster. (IRI: GET /filesystem/checksum)"""
     return run_command(f"sha256sum {quote_path(path)}")
-
-
-@mcp.tool()
-def fs_download(path: str, local_path: str | None = None) -> dict:
-    """Download a file from the cluster to local disk. (IRI: GET /filesystem/download ⚠ deviation)
-
-    Transfers path → local_path via rsync or scp. No size limit.
-    local_path defaults to the filename in the current working directory.
-    Returns {local_path, bytes, sha256, verified, transport}.
-    Deliberately deviates from the IRI base64 shape — see IRI_CHECKLIST.md.
-    """
-    dest = Path(local_path) if local_path else Path.cwd() / Path(path).name
-    return download_file(path, dest)
 
 
 @mcp.tool()
@@ -318,7 +306,7 @@ def fs_cp(src: str, dst: str) -> str:
 def fs_mv(src: str, dst: str) -> str:
     """Move or rename a file or directory on the cluster. (IRI: POST /filesystem/mv)
 
-    Destructive — the source path will no longer exist after this call.
+    Destructive — the source path no longer exists afterwards.
     """
     return run_command(f"mv {quote_path(src)} {quote_path(dst)} && echo ok")
 
@@ -351,9 +339,7 @@ def fs_symlink(path: str, link_path: str) -> str:
 
     path is the target; link_path is the new symlink to create.
     """
-    return run_command(
-        f"ln -s {quote_path(path)} {quote_path(link_path)} && echo ok"
-    )
+    return run_command(f"ln -s {quote_path(path)} {quote_path(link_path)} && echo ok")
 
 
 _COMPRESSION_FLAGS = {
@@ -376,25 +362,22 @@ def fs_compress(
 
     target_path: path of the archive to create.
     path: source file or directory (defaults to current directory).
-    match_pattern: regex passed to find -regex to filter files.
+    match_pattern: regex passed to `find -regex` to filter files.
     dereference: follow symlinks (-h).
     compression: gzip (default), bzip2, xz, or none.
     """
     flag = _COMPRESSION_FLAGS[compression]
     deref = "h" if dereference else ""
     tar_flags = f"-{deref}c{flag}f"
-
+    src = quote_path(path or ".")
     if match_pattern:
-        src = quote_path(path or ".")
         pattern = shlex.quote(match_pattern)
         cmd = (
             f"find {src} -regex {pattern} -print0 | "
             f"tar {tar_flags} {quote_path(target_path)} --null -T -"
         )
     else:
-        src = quote_path(path or ".")
         cmd = f"tar {tar_flags} {quote_path(target_path)} {src}"
-
     return run_command(cmd + " && echo ok")
 
 
@@ -425,10 +408,11 @@ def run_command_on_cluster(command: str) -> str:
     """Run an arbitrary shell command on the R-CCS Cloud login node (extension —
     not an IRI endpoint).
 
-    Use only when no dedicated tool fits, e.g. checking GPU utilization on a
-    job's node. Runs under a login shell from the home directory; returns
-    stdout+stderr. Do not run heavy computation on the login node — submit
-    a job instead.
+    Before calling this, show the user the exact command and a one-line
+    explanation, then call it — skip the preview only if the user explicitly
+    asked to just run something. Runs under a login shell from the home
+    directory; returns stdout. Do not run heavy computation on the login
+    node — submit a job instead.
     """
     return run_command(command)
 

@@ -17,7 +17,7 @@ if [ ! -x "$VENV/bin/python" ]; then
     "$VENV/bin/pip" install --quiet --upgrade pip >&2
 fi
 # (Re)install if the package or its deps are missing.
-if ! "$VENV/bin/python" -c "import hokusai_mcp, mcp, remotemanager" >/dev/null 2>&1; then
+if ! "$VENV/bin/python" -c "import hokusai_mcp, hpc_agent_core" >/dev/null 2>&1; then
     "$VENV/bin/pip" install --quiet -e "$DIR" >&2
 fi
 

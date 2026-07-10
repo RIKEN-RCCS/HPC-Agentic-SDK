@@ -1,164 +1,56 @@
-# IRI Facility API coverage checklist
+# IRI Facility API coverage — RIKYU
 
-Tracks how far `rikyu-hpc` covers the [IRI Facility API](https://api.alcf.anl.gov/)
-(ALCF implementation, spec at api.alcf.anl.gov/openapi.json — not committed; fetch
-it when needed, see AGENTS.md). Each IRI endpoint maps to an MCP
-tool executed on Rikyu over SSH via remotemanager — there is no REST service;
-we emulate the API's shape and semantics.
+Endpoint-by-endpoint coverage decisions for `server/rikyu_mcp/hpc_server.py`
+against the IRI (Integrated Research Infrastructure) Facility API. This is
+genuinely machine-specific (what's sensible on RIKYU may not be on another
+machine) and intentionally lives here rather than in `hpc-agent-core`.
 
-**The verdicts below are specific to Rikyu.** When porting to a new machine,
-re-decide every row against what *that* machine can do — the same endpoint can be
-implementable on one machine and not another (e.g. the `project_allocations`
-endpoints are deferred here, but implementable on a machine with core-time
-accounting like HOKUSAI BigWaterfall2's `listcpu`).
+## Compute
 
-Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
+| IRI endpoint | Tool | Status |
+|---|---|---|
+| `POST /compute/job` | `submit_job` | Implemented. Defaults `queue_name` to `"gpu"` (RIKYU's only partition) and validates the GPU count against RIKYU's supported set (1/2/3/4/8/12/16) before submission. |
+| `GET /compute/job/{id}` | `get_job_status` | Implemented (via `sacct`, since RIKYU has accounting). |
+| `GET /compute/jobs` | `get_job_statuses` | Implemented; empty `job_ids` returns the current user's jobs from roughly the last two days. |
+| `DELETE /compute/job/{id}` | `cancel_job` | Implemented (`scancel`, then re-reads status via `sacct`). |
+| `PUT /compute/job/{id}` | `update_job` | Implemented as a generic `scontrol update` field/value pass-through (e.g. extending `TimeLimit`). Not schema-validated beyond what Slurm itself enforces — Slurm will reject a field it doesn't recognize or a change the user isn't permitted to make. |
 
-## facility
+## Filesystem
 
-| IRI endpoint | Tool | Status | Notes |
-|---|---|---|---|
-| GET /facility | `get_facility` | ✅ | Static data from `server/rikyu_mcp/data/rikyu_config.json` |
-| GET /facility/sites | — | ❌ | Single-site deployment; fold into `get_facility` if ever needed |
-| GET /facility/sites/{site_id} | — | ❌ | Same |
+All of `fs_ls`, `fs_stat`, `fs_view`, `fs_head`, `fs_tail`, `fs_mkdir`,
+`fs_upload`, `fs_download`, `fs_checksum`, `fs_cp`, `fs_mv`, `fs_chmod`,
+`fs_chown`, `fs_symlink`, `fs_compress`, `fs_extract` are implemented as
+thin wrappers over `hpc_agent_core.middleware` (`run_command`,
+`quote_path`, `upload_file`, `download_file`) or direct shell one-liners.
+No RIKYU-specific filesystem behavior beyond what Lustre/xfs's own
+permissions already enforce (e.g. `fs_chown` will fail for a non-owner the
+same way it would over plain SSH).
 
-## status
+## Facility / resources
 
-| IRI endpoint | Tool | Status | Notes |
-|---|---|---|---|
-| GET /status/resources | `get_resources` | ✅ | One resource (`rikyu`) with per-partition node summary from sinfo |
-| GET /status/resources/{resource_id} | `get_resource` | ✅ | Per-partition node counts + drained nodes with reasons (`sinfo -R`) |
-| GET /status/incidents | — | ❌ | No incident data source on Rikyu; closest signal is drained nodes / maintenance reservations (`scontrol show reservation`) |
-| GET /status/incidents/{id} | — | ❌ | Same |
-| GET /status/events | — | ❌ | Same |
-| GET /status/events/{id} | — | ❌ | Same |
+| IRI endpoint | Tool | Status |
+|---|---|---|
+| `GET /facility` | `get_facility` | Implemented — returns the full bundled `rikyu_config.json` (partitions, job-resource table, storage, modules, Spack). Static. |
+| `GET /resources` | `get_resources` | Implemented — **live** occupancy via `sinfo` (`hpc_agent_core`'s `SlurmBackend.get_live_resources()`), not static config. RIKYU has exactly one resource, the `gpu` partition, but its allocated/idle node counts change constantly, hence live. (Corrected 2026-07-10: an earlier revision of this port returned static config here instead — a real gap, since "will my job start soon" needs live data — caught by `hpc-agent-core`'s `PORTING.md` after this port surfaced the missing example.) |
+| `GET /resources/{name}` | `get_resource` | Implemented, same live basis as above. |
 
-## account
+## Projects / accounting
 
-| IRI endpoint | Tool | Status | Notes |
-|---|---|---|---|
-| GET /account/capabilities | — | ❌ | No equivalent concept exposed on Rikyu |
-| GET /account/capabilities/{id} | — | ❌ | Same |
-| GET /account/projects | `get_projects` | ✅ | `sacctmgr show associations user=$USER` |
-| GET /account/projects/{id} | `get_project` | ✅ | Filter over `get_projects` |
-| GET .../project_allocations | — | ❌ | Rikyu early access has no allocation accounting yet |
-| GET .../project_allocations/{id} | — | ❌ | Same |
-| GET .../user_allocations | — | ❌ | Same |
-| GET .../user_allocations/{id} | — | ❌ | Same |
+| IRI endpoint | Tool | Status |
+|---|---|---|
+| `GET /projects`, `GET /projects/{id}` | — | **Deferred.** RIKYU's job scripts never set `--account` (confirmed absent from every example in the source user guide), and current usage/balance is exposed only through a web billing portal linked from Open OnDemand, not a CLI/API this plugin can query. There is no `sacctmgr`-based project/allocation query documented for RIKYU to wrap. Revisit if RIKYU later exposes project accounting via CLI. |
 
-## compute
+## Extensions (no IRI counterpart)
 
-| IRI endpoint | Tool | Status | Notes |
-|---|---|---|---|
-| POST /compute/job/{resource_id} | `submit_job` | ✅ | JobSpec → sbatch script (kept in `~/.rikyu/jobs/`); returns `{job_id, script_path}` — see deviation note below |
-| PUT /compute/job/{rid}/{job_id} | `update_job` | ✅ | `scontrol update job`; time_limit works on running jobs; partition/account/reservation queued-only |
-| GET /compute/status/{rid}/{job_id} | `get_job_status` | ✅ | Returns our `JobStatus` directly — see deviation note below |
-| POST /compute/status/{rid} | `get_job_statuses` | ✅ | Batch; empty list = current user's last 2 days |
-| DELETE /compute/cancel/{rid}/{job_id} | `cancel_job` | ✅ | scancel + post-cancel state report |
+| Tool | Why it exists |
+|---|---|
+| `run_command_on_cluster` | Arbitrary login-node command, for anything the structured tools above don't cover (e.g. `sinfo`, `spack find -x`, `id` to find a group name). Documented as "show before you run," same as `submit_job`. |
+| `get_drained_nodes` | Nodes currently drained/down and why, via `sinfo -R` (`hpc_agent_core`'s `SlurmBackend.get_drained_nodes()`). Directly useful for "why won't my job start" triage alongside `get_resources`. |
 
-## filesystem
+## Not implemented
 
-| IRI endpoint | Tool | Status | Notes |
-|---|---|---|---|
-| GET /filesystem/ls | `fs_ls` | ✅ | |
-| GET /filesystem/stat | `fs_stat` | ✅ | |
-| GET /filesystem/file | — | 🔜 | IRI generic file read; our `fs_view` covers this use-case; add as alias |
-| GET /filesystem/view | `fs_view` | ✅ | 200KB cap; text only |
-| GET /filesystem/head | `fs_head` | ✅ | |
-| GET /filesystem/tail | `fs_tail` | ✅ | Primary way to read job output |
-| POST /filesystem/mkdir | `fs_mkdir` | ✅ | |
-| POST /filesystem/upload | `fs_upload` | ⚠️ deviation | **Deliberately diverges from the IRI multipart shape.** `fs_upload(path, local_path)` transfers local→remote via rsync (scp fallback if rsync < 3.0) and returns metadata `{remote_path, bytes, sha256, verified, transport}`. No size limit. IRI's multipart body would route file bytes through the MCP tool input. |
-| GET /filesystem/download | `fs_download` | ⚠️ deviation | **Deliberately diverges from the IRI base64 shape.** `fs_download(path, local_path=None)` transfers remote→local via rsync (scp fallback if rsync < 3.0) and returns metadata `{local_path, bytes, sha256, verified, transport}`. No size limit. IRI returns base64 in the response body; routing bytes through the model context fails past ~12 KB (0.9 tokens/byte × 10k-token tool cap). |
-| GET /filesystem/checksum | `fs_checksum` | ✅ | `sha256sum` |
-| POST /filesystem/mv | `fs_mv` | ✅ | `mv`; docstring notes it is destructive |
-| POST /filesystem/cp | `fs_cp` | ✅ | `cp -r` |
-| DELETE /filesystem/rm | — | ❌ | Deliberately omitted (destructive); agent can use escape hatch with user confirmation |
-| PUT /filesystem/chmod | `fs_chmod` | ✅ | `chmod` |
-| PUT /filesystem/chown | `fs_chown` | ✅ | `chown`; group-only changes work for normal users |
-| POST /filesystem/symlink | `fs_symlink` | ✅ | `ln -s` |
-| POST /filesystem/compress | `fs_compress` | ✅ | `tar`; supports gzip/bzip2/xz/none + match_pattern via find |
-| POST /filesystem/extract | `fs_extract` | ✅ | `tar -x` |
-
-## task
-
-| IRI endpoint | Tool | Status | Notes |
-|---|---|---|---|
-| GET /task/{task_id} | — | ❌ | IRI's async-task model queues REST ops; our SSH execution is synchronous, so `submit_job` returns `job_id` directly (see deviation). Revisit only if we add long-running server-side operations |
-| DELETE /task/{task_id} | — | ❌ | Same |
-| GET /task | — | ❌ | Same |
-
----
-
-## Known deviations from the IRI/PSI-J schemas
-
-Verified against the ALCF IRI spec (fetched 2026-06-12 from api.alcf.anl.gov/openapi.json).
-
-### JobAttributes
-
-| Field | IRI | Ours | Action |
-|---|---|---|---|
-| `duration` | **integer seconds** | HH:MM:SS string | 🔜 Accept both; convert string→seconds before rendering sbatch, accept int as-is |
-| `account` | `account` | `project_name` | 🔜 Rename field to `account` |
-| `reservation_id` | present | absent | 🔜 Add; maps to `--reservation` sbatch flag |
-
-### ResourceSpec
-
-| Field | IRI | Ours | Action |
-|---|---|---|---|
-| `node_count` | present | present ✅ | — |
-| `processes_per_node` | present | present ✅ | — |
-| `process_count` | present (total processes) | absent | 🔜 Add; alternative to `processes_per_node × node_count` |
-| `cpu_cores_per_process` | present | present ✅ | — |
-| `gpu_cores_per_process` | present (PSI/J standard) | absent | 🔜 Add as alias/fallback; Rikyu uses `gpus_per_node` |
-| `gpus_per_node` | absent (Rikyu extension) | present | Keep — maps to `--gpus-per-node`; document as extension |
-| `exclusive_node_use` | present | absent | 🔜 Add; maps to `--exclusive` |
-| `memory` | present (bytes) | absent | 🔜 Add; maps to `--mem` (convert bytes → MB for sbatch) |
-
-### JobSpec
-
-| Field | IRI | Ours | Action |
-|---|---|---|---|
-| `executable` | present | present ✅ | — |
-| `arguments` | present | present ✅ | — |
-| `directory` | present | present ✅ | — |
-| `name` | present | present ✅ | — |
-| `environment` | present | present ✅ | — |
-| `stdout_path` | present | present ✅ | — |
-| `stderr_path` | present | present ✅ | — |
-| `resources` | present | present ✅ | — |
-| `attributes` | present | present ✅ | — |
-| `inherit_environment` | present | absent | 🔜 Add; default true for sbatch |
-| `stdin_path` | present | absent | 🔜 Add; maps to `--input` |
-| `pre_launch` | present (script before job) | absent | 🔜 Add; prepend to sbatch script body |
-| `post_launch` | present (script after job) | absent | 🔜 Add; append to sbatch script body |
-| `launcher` | present (e.g. `srun`, `mpirun`) | absent | 🔜 Add; prepend to `executable` in script |
-| `container` | present (Container: image + mounts) | present ✅ | Singularity 4.3.7 on Rikyu; `--nv` added when GPUs requested; launcher placed outside singularity exec |
-
-### JobState
-
-IRI values are **lowercase**: `new`, `queued`, `held`, `active`, `completed`, `failed`, `canceled`.
-Ours are uppercase: `QUEUED`, `ACTIVE`, `COMPLETED`, `FAILED`, `CANCELED`, `UNKNOWN`.
-🔜 Align to lowercase. Also add `new` (job submitted, not yet queued) and `held` states.
-
-### JobStatus / Job response shape
-
-IRI's `JobStatus` schema: `{state, time (epoch float), message, exit_code, meta_data}`.
-IRI's `Job` schema (returned by getJob/getJobs): `{id, status: JobStatus, job_spec: JobSpec-Output}`.
-
-Ours returns a flat `JobStatus` with richer Slurm fields (`native_state`, `name`, `partition`,
-`elapsed`, `start_time`, `end_time`, `nodes`, `workdir`, `reason`).
-
-🔜 Align response shape: return `Job` wrapper from `get_job_status`/`get_job_statuses`. Map our
-rich fields into `meta_data`. Use epoch float for `time` (use `start_time` or `end_time`).
-
-### submit_job return value
-
-IRI returns `TaskSubmitResponse {task_id, task_uri}` because ALCF queues REST operations
-as async tasks. Our SSH execution is synchronous — sbatch completes before we return —
-so we return `{job_id, script_path}` directly. No task polling needed.
-
-This is an intentional deviation. Document it clearly to callers.
-
-### resource_id
-
-Accepted and validated in all compute/filesystem tools but there is a single resource: `rikyu`.
+- **Interactive jobs** (`salloc`/`srun --pty`): inherently need a live
+  terminal session, which doesn't fit this agent's request/response tool
+  model. The `rikyu-submitting-jobs` skill tells the user to run these
+  themselves for debugging, and points at `run_command_on_cluster` for
+  short one-off checks instead.
