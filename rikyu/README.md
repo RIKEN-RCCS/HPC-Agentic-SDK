@@ -26,7 +26,9 @@ every hpc-agent-core plugin):
 
 - `ssh.host` is a `~/.ssh/config` alias or `user@login.rikyu.r-ccs.riken.jp`
   (key-based auth required — register your key via Open OnDemand's "SSH
-  Public Key" app first). `RIKYU_HOST` overrides the file.
+  Public Key" app first), or `"localhost"` if the agent is running directly
+  on a Rikyu front-end node (no SSH needed at all). `RIKYU_HOST` overrides
+  the file.
 - A legacy `~/.rikyu/config.json` is still read if it's the only config
   present.
 
@@ -151,7 +153,7 @@ Rebuilding the docs index after editing `rikyu_guide.md`:
 
 ```
 cd server
-uv run python -m hpc_agent_core.rag.ingest
+uv run python -m rikyu_mcp.ingest
 ```
 
 Commit the resulting `rikyu_mcp/data/docs_index/` (chunks.json, and

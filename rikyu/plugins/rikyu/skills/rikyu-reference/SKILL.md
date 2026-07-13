@@ -35,5 +35,5 @@ searches a guide bundled with the agent (not the official site — see below).
 The guide (`server/rikyu_mcp/data/rikyu_guide.md`) is an original write-up
 maintained by hand, not something re-scraped from a live site. If it goes
 stale, edit the guide directly, then rebuild the index:
-`python -m rikyu_mcp.rag.ingest` (run from `server/`; it automatically falls
+`python -m rikyu_mcp.ingest` (run from `server/`; it automatically falls
 back to a BM25-only index when no embedding key is configured).

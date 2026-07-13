@@ -26,7 +26,9 @@ every hpc-agent-core plugin):
 
 - `ssh.host` — an alias in `~/.ssh/config` or `user@hokusai.riken.jp`
   (register your SSH key via the portal `https://hokusai.riken.jp/hbw2/`
-  first; auth is key-only). `HOKUSAI_HOST` overrides the file.
+  first; auth is key-only), or `"localhost"` if the agent runs directly on
+  an HBW2 front-end node (no SSH needed at all). `HOKUSAI_HOST` overrides
+  the file.
 - `defaults.account` — the project charged when a job names none;
   **mandatory** on HBW2 (`RB…` RIKEN or `HP…` HPCI). `HOKUSAI_ACCOUNT`
   overrides the file.
@@ -155,7 +157,7 @@ Rebuilding the docs index after editing `hokusai_guide.md`:
 
 ```
 cd server
-uv run python -m hpc_agent_core.rag.ingest
+uv run python -m hokusai_mcp.ingest
 ```
 
 Commit the resulting `hokusai_mcp/data/docs_index/` (chunks.json, and

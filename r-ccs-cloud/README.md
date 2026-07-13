@@ -27,8 +27,10 @@ every hpc-agent-core plugin):
 ```
 
 `ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth
-required). `RCCS_CLOUD_HOST` overrides the file. A legacy
-`~/.rccs-cloud/config.json` is still read if it's the only config present.
+required), or `"localhost"` if the agent is running directly on an R-CCS
+Cloud front-end node (no SSH needed at all). `RCCS_CLOUD_HOST` overrides the
+file. A legacy `~/.rccs-cloud/config.json` is still read if it's the only
+config present.
 
 For documentation search, add your API key for the shared RIKEN embedding
 service:

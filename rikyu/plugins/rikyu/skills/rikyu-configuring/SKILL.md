@@ -30,8 +30,13 @@ what's missing or being changed.
      the public key through Rikyu's Open OnDemand web portal ("SSH Public
      Key" page) before the first login — point them to that portal by name,
      not a URL, since it isn't one we should be linking to here.
+   - **Running the agent session directly on a Rikyu front-end/login node**
+     (not a personal laptop)? Use `"host": "localhost"` instead — no SSH key
+     needed at all. Skip the verification step below for this case; there's
+     nothing to probe.
    - Verify with: `ssh -o BatchMode=yes <host> 'echo ok'` (BatchMode matters —
      the MCP server cannot answer password prompts; key-based auth is required).
+     Not applicable for `"host": "localhost"` — see above.
 2. **Embedding API key** (optional — skippable, BM25 fallback works). Docs search
    uses a shared RIKEN BGE-M3 endpoint; the endpoint and model are fixed
    constants (the committed embeddings are tied to that model), so the only
@@ -51,16 +56,17 @@ what's missing or being changed.
 5. **If the embedding endpoint was added or changed**, rebuild the docs index
    so it gains vector embeddings:
    ```bash
-   server/run.sh rikyu_mcp.rag.ingest
+   server/run.sh rikyu_mcp.ingest
    ```
    Then run the doctor again — it should report "chunks with embeddings".
 
 ## Notes
 
-- The embedding key is read per-query, so docs search picks up a changed key
-  immediately; an SSH host change needs the rikyu-hpc server restarted
-  (reconnect MCP servers or restart Claude Code). A rebuilt docs index also
-  needs the rikyu-docs server restarted to be picked up.
+- The embedding key and SSH host are both read fresh on every tool call, so
+  a config file edit (including switching `ssh.host` to/from `"localhost"`)
+  applies immediately — no server restart needed. A rebuilt docs index still
+  needs the rikyu-docs server restarted to be picked up (that index is
+  loaded once and cached in memory).
 - The embedding endpoint is the shared RIKEN R-CCS service and must be reachable
   from where the docs server runs (your machine / the RIKEN network). Off-network
   or without a key, docs search transparently falls back to BM25 keyword search.

@@ -47,13 +47,13 @@ Show the top result: the breadcrumb and a short excerpt — **no URL**, this sea
 
 ## Step 4 — Filesystem
 
-Call `fs_ls(".")` to list the user's home directory. Show the listing cleanly (just names, sizes, dates — no raw flag noise). Highlight anything interesting: job scripts in `.rikyu/jobs/`, scratch symlinks, project directories.
+Call `fs_ls(".")` to list the user's home directory. Show the listing cleanly (just names, sizes, dates — no raw flag noise). Highlight anything interesting: job scripts in `agent/jobs/`, scratch symlinks, project directories.
 
 Then demonstrate the new filesystem tools:
-1. `fs_cp(".rikyu/jobs/<most recent script>", "/tmp/demo-copy.sh")` — copy the most recent job script
-2. `fs_checksum("/tmp/demo-copy.sh")` — show the SHA-256
-3. `fs_mv("/tmp/demo-copy.sh", "/tmp/demo-renamed.sh")` — rename it, note this is destructive
-4. `fs_checksum("/tmp/demo-renamed.sh")` — confirm the checksum matches (same file)
+1. `fs_cp("agent/jobs/<most recent script>", "agent/demo-copy.sh")` — copy the most recent job script
+2. `fs_checksum("agent/demo-copy.sh")` — show the SHA-256
+3. `fs_mv("agent/demo-copy.sh", "agent/demo-renamed.sh")` — rename it, note this is destructive
+4. `fs_checksum("agent/demo-renamed.sh")` — confirm the checksum matches (same file)
 
 Present this as: *"Copy, checksum, move — the full filesystem toolkit."*
 

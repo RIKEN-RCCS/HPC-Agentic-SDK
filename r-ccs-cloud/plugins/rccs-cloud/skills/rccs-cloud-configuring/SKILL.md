@@ -31,6 +31,9 @@ being changed.
    - An alias in `~/.ssh/config` (recommended) → `"host": "<alias>"`.
    - Otherwise username + hostname → `"host": "user@login.cloud.r-ccs.riken.jp"`,
      and offer to add a proper alias block to `~/.ssh/config`.
+   - Running the agent session directly on an R-CCS Cloud front-end node
+     (not a personal laptop)? Use `"host": "localhost"` instead — no SSH key
+     needed, and skip the verification step below (nothing to probe).
    - Verify with `ssh -o BatchMode=yes <host> 'echo ok'` — BatchMode matters,
      since the MCP server cannot answer a password prompt; key-based auth is required.
 2. **Embedding API key** (optional — skippable, BM25 fallback works). Docs
@@ -52,8 +55,9 @@ being changed.
 
 ## Notes
 
-- The embedding key is read per-query; an SSH host change needs the
-  rccs-cloud-hpc server reconnected (or Claude Code / Codex restarted).
+- The embedding key and SSH host are both read fresh on every tool call, so
+  a config file edit (including switching `ssh.host` to/from `"localhost"`)
+  applies immediately — no server restart needed.
 - Off-network or without a key, docs search transparently falls back to BM25
   keyword search over the same content — the plugin still works.
 - The MCP servers never fail to start on a missing/malformed config: you only

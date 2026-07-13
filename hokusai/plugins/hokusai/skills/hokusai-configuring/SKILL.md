@@ -17,6 +17,10 @@ Register your public key through the portal at
 `ssh hokusai.riken.jp` yourself, or set up an SSH alias (e.g. `hokusai`) in
 `~/.ssh/config` pointing at `hokusai.riken.jp` with your key.
 
+**Running the agent session directly on an HBW2 front-end node** (not a
+personal laptop)? Skip this whole step — use `"host": "localhost"` in step 2
+instead, with no SSH key needed at all.
+
 ## 2. Write the config file
 
 The plugin reads `~/.hpc-agent/hokusai.json`. Create it with:
@@ -28,8 +32,9 @@ The plugin reads `~/.hpc-agent/hokusai.json`. Create it with:
 }
 ```
 
-- `ssh.host` — an alias from `~/.ssh/config`, or `user@hokusai.riken.jp`.
-  Defaults to `hokusai` if omitted.
+- `ssh.host` — an alias from `~/.ssh/config`, `user@hokusai.riken.jp`, or
+  `"localhost"` if the agent is running directly on an HBW2 front-end node
+  (no SSH at all in that case). Defaults to `hokusai` if omitted.
 - `defaults.account` — the project ID to bill when a job doesn't name one.
   **Every HBW2 job must be billed to a project**, so set this (or pass an
   account per job) or submissions will error. RIKEN project IDs start `RB`;

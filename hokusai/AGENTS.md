@@ -84,9 +84,9 @@ Verified against the **real HBW2 login node** (not just doctor):
 `get_facility`, `get_projects`, `get_resources`, and a full job lifecycle —
 submitted job `8481063` on `mpc`, followed queued → active → completed, and
 read its `slurm-*.out`. This is the PORTING.md §9 "submit a real job" bar.
-The embedding endpoint was unreachable from the test network, so the docs
-index is BM25-only; rebuild with an embedding key on the RIKEN network via
-`python -m hpc_agent_core.rag.ingest` (after importing `hokusai_mcp.config`).
+The embedding endpoint was unreachable from the test network at the time,
+so the docs index was initially BM25-only; rebuild with an embedding key on
+the RIKEN network via `python -m hokusai_mcp.ingest`.
 
 ## Repo map
 

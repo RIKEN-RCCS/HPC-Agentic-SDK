@@ -5,6 +5,10 @@ dist/
 build/
 .venv/
 openapi.json
-*.npy
+# NOT *.npy: server/cloud_mcp/data/docs_index/embeddings.npy is the built
+# docs-index vector file and must be committed as package data (matching
+# every other machine repo in the family) — a blanket *.npy rule here
+# previously ignored it silently, so a real embeddings.npy could be
+# generated and would never actually get committed.
 # uv tool run resolves its own dependencies; a committed lock file would drift without benefit
 server/uv.lock

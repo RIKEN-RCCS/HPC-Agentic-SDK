@@ -19,7 +19,7 @@ description: Use when the user wants to run, submit, or launch a job (training, 
      "attributes": {"duration": "12:00:00", "queue_name": "gpu"}
    }
    ```
-   The rendered sbatch script is kept on the cluster under `~/.rikyu/jobs/` — `fs_view` it if the user wants to inspect what was submitted.
+   The rendered sbatch script is kept on the cluster under `~/agent/jobs/` — `fs_view` it if the user wants to inspect what was submitted.
 4. **Verify**: `get_job_status` right after submission. `QUEUED` with a `reason` explains any wait; stdout lands in `<workdir>/slurm-<job_id>.out`.
 
 ## Rikyu conventions

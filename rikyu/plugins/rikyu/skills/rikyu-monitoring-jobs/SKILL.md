@@ -19,7 +19,7 @@ description: Use when the user asks about the status, progress, output, history,
    - **OOM** → `native_state` OUT_OF_MEMORY; the fix is requesting more GPUs (each one brings 36 more CPU cores and ~400GB more memory as a fixed bundle — you can't raise memory independently of GPU count).
    - **Time limit** → `native_state` TIMEOUT; raise `duration` (max 96h — there's no longer-running exception).
    - **Lost scratch output** → results written to `/tmp` on the compute node but not copied back to `/home/<user>` or `/data1/<group>` before the job ended are unrecoverable.
-3. The exact script that was submitted is kept in `~/.rikyu/jobs/` — `fs_view` it when debugging.
+3. The exact script that was submitted is kept in `~/agent/jobs/` — `fs_view` it when debugging.
 
 ## Live GPU utilization
 
