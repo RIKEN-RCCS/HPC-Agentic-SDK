@@ -95,9 +95,10 @@ silently links the wrong libraries or fails at runtime.
 | r340 | (none required) |
 
 Put the module load at the start of the job's command, e.g.
-`module load system/genoa mpi/openmpi-x86_64 && srun ./app`. After a system
-module is loaded, `module avail` shows the rest of the software for that
-partition.
+`module load system/genoa mpi/openmpi-x86_64 && mpirun -np <n> ./app`. After a
+system module is loaded, `module avail` shows the rest of the software for
+that partition. Use `mpirun`, not `srun`, to launch MPI ranks — see "MPI
+launch" below.
 
 ## Job submission
 
@@ -112,6 +113,20 @@ that is what makes `module` available, and a batch script's `#!/bin/bash` is not
 a login shell that would source it automatically. **The plugin emits
 `source /etc/profile` for you**, immediately after the `#SBATCH` header, so do
 not add it to the executable yourself.
+
+### MPI launch
+
+This Slurm has **no PMI support configured**, so `srun` cannot bootstrap MPI
+ranks — a program launched with `srun` will hang or fail rather than start
+in parallel. Launch MPI programs with `mpirun` (OpenMPI) instead, after
+loading the partition's MPI module. `srun` itself still works fine for
+non-MPI/single-process commands and interactive `srun --pty` sessions; the
+gap is specifically MPI rank bootstrap.
+
+Because `mpirun` without PMI needs its own hostfile/SSH-based setup to reach
+other nodes — not provisioned here — prefer **single-node** jobs for MPI
+work (`resources.node_count: 1`, scale with `processes_per_node`) unless
+multi-node `mpirun` has been separately confirmed to work.
 
 ### GPU allocation
 
@@ -171,5 +186,7 @@ compute nodes. Agent-created files (job scripts, staged uploads) are biased into
 - **GPU tools report no devices** — `resources.gpus` was not set on a partition
   that needs `--gpus=<n>`, or it was set on a superchip partition where it
   shouldn't be.
+- **MPI job hangs or only one rank starts** — it was launched with `srun`.
+  There's no PMI support here; use `mpirun` instead (see "MPI launch" above).
 - **Accounts** — no `--account` is required; jobs without one use your default
   Slurm account.

@@ -56,7 +56,7 @@
   {
     "breadcrumb": "R-CCS Cloud > Module loading",
     "url": "",
-    "text": "Every partition ships its own `system/<partition>` module that sets up the\ncompilers, libraries, and paths for that hardware. **Load it first, and never\nload a system module belonging to a different partition** — a mismatched module\nsilently links the wrong libraries or fails at runtime.\n\n| Partition | Module command |\n|-----------|----------------|\n| fx700 | `module load system/fx700 FJSVstclanga` |\n| genoa, genoa-m | `module load system/genoa mpi/openmpi-x86_64` |\n| a100 | `module load system/a100 nvhpc` |\n| b300 | `module load system/b300 nvhpc` |\n| ai-h100l, ai-h100l-pu | `module load system/ai-h100l nvhpc` |\n| ai-h200-brc | `module load system/ai-h200-brc nvhpc` |\n| ai-l40s | `module load system/ai-l40s nvhpc` |\n| qc-a100 | `module load system/qc-a100 nvhpc` |\n| qc-h100 | `module load system/qc-h100 nvhpc` |\n| qc-gh200 | `module load system/qc-gh200 nvhpc` |\n| mi100 | `module load system/mi100 rocm` |\n| qc-mi210 | `module load system/qc-mi210 rocm` |\n| qc-mi250 | `module load system/qc-mi250 rocm` |\n| fs-mi300a | `module load system/fs-mi300a rocm` |\n| fs-mi300x | `module load system/fs-mi300x rocm` |\n| qc-pvc | `module load system/qc-pvc` (or `source /opt/intel/oneapi/setvars.sh`) |\n| ng-dgx-m[0-3] | `module load system/ng-dgx nvhpc` |\n| r340 | (none required) |\n\nPut the module load at the start of the job's command, e.g.\n`module load system/genoa mpi/openmpi-x86_64 && srun ./app`. After a system\nmodule is loaded, `module avail` shows the rest of the software for that\npartition.",
+    "text": "Every partition ships its own `system/<partition>` module that sets up the\ncompilers, libraries, and paths for that hardware. **Load it first, and never\nload a system module belonging to a different partition** — a mismatched module\nsilently links the wrong libraries or fails at runtime.\n\n| Partition | Module command |\n|-----------|----------------|\n| fx700 | `module load system/fx700 FJSVstclanga` |\n| genoa, genoa-m | `module load system/genoa mpi/openmpi-x86_64` |\n| a100 | `module load system/a100 nvhpc` |\n| b300 | `module load system/b300 nvhpc` |\n| ai-h100l, ai-h100l-pu | `module load system/ai-h100l nvhpc` |\n| ai-h200-brc | `module load system/ai-h200-brc nvhpc` |\n| ai-l40s | `module load system/ai-l40s nvhpc` |\n| qc-a100 | `module load system/qc-a100 nvhpc` |\n| qc-h100 | `module load system/qc-h100 nvhpc` |\n| qc-gh200 | `module load system/qc-gh200 nvhpc` |\n| mi100 | `module load system/mi100 rocm` |\n| qc-mi210 | `module load system/qc-mi210 rocm` |\n| qc-mi250 | `module load system/qc-mi250 rocm` |\n| fs-mi300a | `module load system/fs-mi300a rocm` |\n| fs-mi300x | `module load system/fs-mi300x rocm` |\n| qc-pvc | `module load system/qc-pvc` (or `source /opt/intel/oneapi/setvars.sh`) |\n| ng-dgx-m[0-3] | `module load system/ng-dgx nvhpc` |\n| r340 | (none required) |\n\nPut the module load at the start of the job's command, e.g.\n`module load system/genoa mpi/openmpi-x86_64 && mpirun -np <n> ./app`. After a\nsystem module is loaded, `module avail` shows the rest of the software for\nthat partition. Use `mpirun`, not `srun`, to launch MPI ranks — see \"MPI\nlaunch\" below.",
     "id": 9
   },
   {
@@ -72,33 +72,39 @@
     "id": 11
   },
   {
+    "breadcrumb": "R-CCS Cloud > Job submission > MPI launch",
+    "url": "",
+    "text": "This Slurm has **no PMI support configured**, so `srun` cannot bootstrap MPI\nranks — a program launched with `srun` will hang or fail rather than start\nin parallel. Launch MPI programs with `mpirun` (OpenMPI) instead, after\nloading the partition's MPI module. `srun` itself still works fine for\nnon-MPI/single-process commands and interactive `srun --pty` sessions; the\ngap is specifically MPI rank bootstrap.\n\nBecause `mpirun` without PMI needs its own hostfile/SSH-based setup to reach\nother nodes — not provisioned here — prefer **single-node** jobs for MPI\nwork (`resources.node_count: 1`, scale with `processes_per_node`) unless\nmulti-node `mpirun` has been separately confirmed to work.",
+    "id": 12
+  },
+  {
     "breadcrumb": "R-CCS Cloud > Job submission > GPU allocation",
     "url": "",
     "text": "GPUs are requested with `--gpus=<n>` (a job-total count), and `--nodes` is always\nstated explicitly. Set `resources.gpus` in the JobSpec to request them.\n\nThe unified CPU+GPU superchip partitions — **qc-gh200** and **ng-dgx-m[0-3]** —\ntake no GPU flag at all; the GPU is always present. Leave `resources.gpus` unset\nfor those; the plugin will not emit a GPU flag.",
-    "id": 12
+    "id": 13
   },
   {
     "breadcrumb": "R-CCS Cloud > Job submission > Checking on work",
     "url": "",
     "text": "Use the agent's status tools rather than memorizing commands: recent jobs, a\nsingle job's normalized state and queue reason, and live per-partition node\noccupancy are all available. Job stdout defaults to\n`<workdir>/slurm-<job_id>.out`.",
-    "id": 13
+    "id": 14
   },
   {
     "breadcrumb": "R-CCS Cloud > Storage",
     "url": "",
     "text": "Home directories live under `/home/<user>` and are shared across login and\ncompute nodes. Agent-created files (job scripts, staged uploads) are biased into\n`~/agent/` so they are easy to find rather than scattered across `$HOME`.",
-    "id": 14
+    "id": 15
   },
   {
     "breadcrumb": "R-CCS Cloud > Special cases and restrictions",
     "url": "",
     "text": "- **ai-h100l** is reserved for the \"High Performance Big Data Research Team\" and\n  the \"Data Management Platform Development Unit\". General users should use\n  **ai-h100l-pu**, which is the same hardware but capped at a **30-minute**\n  walltime.\n- **qc-h100** is under repair, and **qc-mi210**'s GPUs are still being set up —\n  check live state before relying on either.\n- **ng-dgx-m[0-3]** runs **Ubuntu**; every other partition runs **Rocky Linux**.\n  A binary or Python wheel built on Rocky may not work on ng-dgx without a\n  rebuild, and vice versa.\n- **fs-mi300a** is an APU: CPU and GPU share a single 512 GB HBM pool, so there\n  is no separate host-memory budget to reason about.\n- **Networking**: only InfiniBand partitions suit tightly-coupled multi-node MPI.\n  Ethernet-only partitions (genoa, genoa-m, b300, the ai-* family, mi100, r340,\n  ng-dgx-m*) work for multi-node jobs but with much higher latency — prefer\n  single-node or loosely-coupled work there.",
-    "id": 15
+    "id": 16
   },
   {
     "breadcrumb": "R-CCS Cloud > Common failure modes",
     "url": "",
-    "text": "- **\"Exec format error\"** — an x86_64 binary was sent to an aarch64 partition\n  (fx700, qc-gh200, ng-dgx). Rebuild for the target architecture (cross-compile\n  fx700 code on r340).\n- **\"module: command not found\"** — `/etc/profile` was not sourced. The plugin\n  emits it automatically; if you see this, check the executable didn't override\n  the environment.\n- **Command not found / link errors after loading a module** — the wrong\n  `system/<partition>` module for the partition the job landed on. Match the\n  module to the partition.\n- **`native_state` OUT_OF_MEMORY** — reduce ranks, request `resources.memory`, or\n  move to a larger-memory partition (genoa-m).\n- **`native_state` TIMEOUT** — raise the job's `duration` (and remember\n  ai-h100l-pu caps at 30 minutes).\n- **GPU tools report no devices** — `resources.gpus` was not set on a partition\n  that needs `--gpus=<n>`, or it was set on a superchip partition where it\n  shouldn't be.\n- **Accounts** — no `--account` is required; jobs without one use your default\n  Slurm account.",
-    "id": 16
+    "text": "- **\"Exec format error\"** — an x86_64 binary was sent to an aarch64 partition\n  (fx700, qc-gh200, ng-dgx). Rebuild for the target architecture (cross-compile\n  fx700 code on r340).\n- **\"module: command not found\"** — `/etc/profile` was not sourced. The plugin\n  emits it automatically; if you see this, check the executable didn't override\n  the environment.\n- **Command not found / link errors after loading a module** — the wrong\n  `system/<partition>` module for the partition the job landed on. Match the\n  module to the partition.\n- **`native_state` OUT_OF_MEMORY** — reduce ranks, request `resources.memory`, or\n  move to a larger-memory partition (genoa-m).\n- **`native_state` TIMEOUT** — raise the job's `duration` (and remember\n  ai-h100l-pu caps at 30 minutes).\n- **GPU tools report no devices** — `resources.gpus` was not set on a partition\n  that needs `--gpus=<n>`, or it was set on a superchip partition where it\n  shouldn't be.\n- **MPI job hangs or only one rank starts** — it was launched with `srun`.\n  There's no PMI support here; use `mpirun` instead (see \"MPI launch\" above).\n- **Accounts** — no `--account` is required; jobs without one use your default\n  Slurm account.",
+    "id": 17
   }
 ]

@@ -1,6 +1,6 @@
 ---
 name: rccs-cloud-monitoring-jobs
-description: Use when the user asks about the status, progress, output, history, or failure of jobs on the R-CCS Cloud, or about queue and node availability.
+description: Use when the user asks about the status, progress, output, history, or failure of jobs on the R-CCS Cloud, or about queue and node availability. Also use this any time you (the agent) need to check on or wait for a job you submitted, even without a fresh user request — e.g. polling a running job until it completes.
 ---
 
 # Monitoring jobs on the R-CCS Cloud
@@ -11,6 +11,11 @@ storage paths (rather than a specific live job), call `search_docs`
 below and note that docs were unavailable.
 
 ## Status checks
+
+Use these tools even when you're checking in on your own — don't fall back to
+`run_command_on_cluster("squeue ...")` / raw `sacct` just because there's no
+new user message prompting it; they return the same info un-normalized and
+without the sacct-lag handling below.
 
 - **One job**: `get_job_status` — `state` is normalized (queued/active/completed/
   failed/canceled); `meta_data.native_state` is Slurm's. A queued job's

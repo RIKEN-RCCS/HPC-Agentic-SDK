@@ -82,6 +82,12 @@ machine.
   ng-dgx-m[0-3] runs Ubuntu, everything else Rocky Linux. Full table in
   `server/cloud_mcp/data/cloud_config.json` and the guide.
 - Submitted scripts are kept under `~/agent/jobs/` on the cluster for auditability.
+- **No PMI support** — `srun` cannot bootstrap MPI ranks on this cluster; jobs
+  must launch MPI with `mpirun` (OpenMPI) instead. Since `mpirun` without PMI
+  needs a manual hostfile/SSH setup for multi-node, jobs should default to
+  single-node (`node_count: 1`). Found live, 2026-07-16, via a user hitting
+  this while doing real research on the cluster — not from the guide.
+  Documented in the submitting-jobs skill and `cloud_guide.md`.
 
 ### Live validation (2026-07-10)
 

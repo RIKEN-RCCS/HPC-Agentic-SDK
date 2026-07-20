@@ -56,13 +56,13 @@ two most important choices before writing any script are: **which partition**
 4. **Submit with a JobSpec** via `submit_job`. Show the user the spec (or
    describe it) before submitting unless they asked to just run it.
 
-   CPU job on genoa:
+   CPU MPI job on genoa (single node — see "MPI launch" below):
    ```json
    {
      "name": "my-cpu-job",
-     "executable": "module load system/genoa mpi/openmpi-x86_64 && srun ./a.out",
+     "executable": "module load system/genoa mpi/openmpi-x86_64 && mpirun -np 4 ./a.out",
      "directory": "/home/<user>/work",
-     "resources": {"node_count": 2, "processes_per_node": 4},
+     "resources": {"node_count": 1, "processes_per_node": 4},
      "attributes": {"duration": "01:00:00", "queue_name": "genoa"}
    }
    ```
@@ -71,7 +71,7 @@ two most important choices before writing any script are: **which partition**
    ```json
    {
      "name": "my-gpu-job",
-     "executable": "module load system/ai-l40s nvhpc && srun ./app",
+     "executable": "module load system/ai-l40s nvhpc && mpirun -np 2 ./app",
      "resources": {"node_count": 1, "gpus": 2, "processes_per_node": 2},
      "attributes": {"duration": "02:00:00", "queue_name": "ai-l40s"}
    }
@@ -89,6 +89,27 @@ two most important choices before writing any script are: **which partition**
 
 5. **Verify**: `get_job_status` right after submission. A `QUEUED` job's
    `message` explains any wait; stdout lands in `<workdir>/slurm-<job_id>.out`.
+   **If you keep checking until the job finishes** (e.g. you're watching it
+   run), keep calling `get_job_status`/`get_job_statuses` on an interval —
+   see `rccs-cloud-monitoring-jobs` for status semantics and the sacct-lag
+   caveat. Don't switch to `run_command_on_cluster("squeue ...")` /
+   `sacct` for this — it's the same information, un-normalized, and skips
+   the sacct-lag handling `get_job_status` already does.
+
+## MPI launch: use mpirun, not srun
+
+This cluster's Slurm has **no PMI support**, so `srun` cannot bootstrap MPI
+ranks — an MPI program launched with `srun` will hang or fail to start. Load
+the MPI module, then launch with `mpirun` (OpenMPI) instead:
+`module load system/genoa mpi/openmpi-x86_64 && mpirun -np <n> ./a.out`.
+
+This is also why most work here should **stay on a single node**: `mpirun`
+without PMI needs its own hostfile/SSH-based remote launch for multi-node
+jobs, which isn't set up on this cluster. Set `resources.node_count: 1` and
+scale with `processes_per_node` unless you've separately confirmed a
+multi-node `mpirun` launch works. (`srun` itself is still fine for
+non-MPI/single-process work and interactive `srun --pty` sessions — the PMI
+gap only affects MPI rank bootstrap.)
 
 ## R-CCS Cloud conventions
 
@@ -103,11 +124,18 @@ two most important choices before writing any script are: **which partition**
   binary or wheel built for Rocky may need a rebuild for ng-dgx.
 - **Network**: only InfiniBand partitions suit tightly-coupled multi-node MPI.
   Ethernet-only partitions have high latency; prefer single-node work there.
+  Multi-node MPI is doubly discouraged here since it also needs a manual
+  `mpirun` hostfile/SSH setup (see "MPI launch" above) — default to
+  single-node.
 - **Scripts land in `~/agent/jobs/`** — `fs_view` them to debug exactly what ran.
 - **No account needed**: jobs without `--account` use your default Slurm account.
 
 ## Don't
 
+- Don't launch MPI ranks with `srun` — no PMI support; use `mpirun` instead.
+- Don't poll a submitted job's progress with `run_command_on_cluster` (raw
+  `squeue`/`sacct`) — use `get_job_status`/`get_job_statuses` instead, even
+  when you're the one deciding to check in, not the user asking.
 - Don't guess module names — use `search_docs` or `run_command_on_cluster("module avail")`.
 - Don't load a system module from the wrong partition.
 - Don't run computation on the login node — submit a job.
