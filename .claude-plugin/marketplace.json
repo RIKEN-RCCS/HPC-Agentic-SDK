@@ -77,5 +77,16 @@
       "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN AI4S supercomputer (NVIDIA GB200, aarch64)",
       "source": "./rikyu/plugins/rikyu"
     }
+    ,
+    {
+      "id": "benchkit",
+      "name": "BenchKit",
+      "description": "Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "benchkit"
+      }
+    }
   ]
 }
