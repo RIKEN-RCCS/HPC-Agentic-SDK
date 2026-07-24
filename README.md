@@ -34,6 +34,8 @@ Then open `/plugins` in Codex and install the plugins you need.
 | [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
 | [make-vibe](./make-vibe/) | Expose Makefile targets as MCP tools for building and running code on local or remote HPC systems |
 | [OpenACC](./openacc/) | Automatically insert OpenACC directives into Fortran code using a verified template library for reliable GPU parallelization |
+| [BenchKit](./benchkit/) | Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems |
+| [Benchpark](./benchpark/) | Use and contribute to Benchpark, a Spack+Ramble-based framework for specifying reproducible HPC benchmarks across multiple systems |
 
 ### RIKEN R-CCS facility agents
 
