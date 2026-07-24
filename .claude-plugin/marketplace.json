@@ -88,5 +88,16 @@
         "path": "benchkit"
       }
     }
+    ,
+    {
+      "id": "benchpark",
+      "name": "Benchpark",
+      "description": "Use and contribute to Benchpark, a Spack+Ramble-based framework for specifying reproducible HPC benchmarks across multiple systems",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "benchpark"
+      }
+    }
   ]
 }

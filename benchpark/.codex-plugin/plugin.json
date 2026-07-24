@@ -1,0 +1,22 @@
+{
+  "name": "benchpark",
+  "version": "0.1.0",
+  "description": "Use and contribute to Benchpark, a Spack+Ramble-based framework for specifying reproducible HPC benchmarks across multiple systems.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/benchpark",
+  "keywords": ["hpc", "benchmarking", "benchpark", "spack", "ramble", "reproducibility", "performance"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Benchpark",
+    "shortDescription": "Specify, build, run, and contribute reproducible HPC benchmarks with Benchpark.",
+    "longDescription": "Guide for using and contributing to Benchpark: running an existing benchmark on a registered system, adding a new benchmark (experiment.py + ramble application.py + spack package.py), and adding a new target system/cluster. Covers the Spack-build / Ramble-run workflow.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Developer Tools",
+    "capabilities": ["Write"],
+    "defaultPrompt": [
+      "Help me add a new Benchpark benchmark."
+    ]
+  }
+}
