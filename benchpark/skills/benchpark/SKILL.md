@@ -88,24 +88,33 @@ What each layer owns:
 
 ```sh
 git clone https://github.com/LLNL/benchpark.git && cd benchpark
-. setup-env.sh                       # bootstraps Spack + Ramble into a venv
+. setup-env.sh                       # adds bin/ to PATH (bootstraps Spack+Ramble lazily)
 benchpark --version                  # sanity check
+```
 
-# 1. initialize the target system
-benchpark system init --dest=mysys <SystemName> compiler=<c> [cluster=<x>]
+The run loop has three init steps then a build/run. The **directory
+nesting matters**: `setup` walks the experiment dir's parents looking for
+`system_id.yaml`, so the experiment dir must live **inside** the system
+dir from step 1.
 
-# 2. initialize the experiment (variants as CLI args)
-benchpark experiment init --dest=myexp mysys <Benchmark> +openmp workload=<w>
+```sh
+# 1. initialize the target system → creates <sysdir>/system_id.yaml
+#    (cluster/compiler are only valid if <SystemName> defines those variants)
+benchpark system init --dest=<sysdir> <SystemName> [cluster=<x>] [compiler=<c>]
 
-# 3. assemble the Ramble workspace
-benchpark setup mysys/<Benchmark> <workspace_path>
-. <workspace_path>/setup.sh
+# 2. initialize the experiment — <system> is the DIR from step 1, not a name.
+#    Put the experiment dir INSIDE the system dir (nesting requirement, see below).
+benchpark experiment init --dest=<sysdir>/<expdir> <sysdir> <Benchmark> [+openmp] [workload=<w>] ...
 
-# 4. build (Spack) and run (Ramble)
-cd <workspace_path>
-ramble --workspace-dir . workspace setup    # Spack builds the benchmark
-ramble --workspace-dir . on                 # runs all experiments in the workspace
-ramble --workspace-dir . workspace analyze  # FOMs + success/fail summary
+# 3. assemble the Ramble workspace (two positionals: experiment_def_dir, experiments_root)
+benchpark setup <sysdir>/<expdir> <experiments_root>
+. <experiments_root>/setup.sh          # sets up Spack + Ramble env
+
+# 4. build (Spack) and run (Ramble) — workspace is under <experiments_root>/<sys>/<exp>/workspace
+cd <experiments_root>
+ramble --workspace-dir . workspace setup     # Spack builds the benchmark
+ramble --workspace-dir . on                  # runs all experiments in the workspace
+ramble --workspace-dir . workspace analyze   # FOMs + success/fail summary
 ```
 
 `<SystemName>` and `<Benchmark>` are the names from `benchpark list systems`
@@ -227,6 +236,20 @@ adds Caliper profiling. See `docs/modifiers.rst`.
   `amg2023` for per-process, `kripke` for total).
 - **At least one of `n_nodes`/`n_ranks`/`n_gpus` must be set** or Benchpark
   can't allocate resources.
+- **Experiment dir must nest inside the system dir.** `benchpark setup`
+  walks the experiment def dir's parents for `system_id.yaml`; if the
+  experiment dir is a sibling of the system dir, `setup` fails with
+  `No benchpark system dir detected ... or any parent`. Use
+  `experiment init --dest=<sysdir>/<expdir> <sysdir> ...`.
+- **`cluster`/`compiler` are not universal.** They're only valid on
+  `system init` if `<SystemName>`'s `system.py` defines those variants
+  (e.g. `riken-cloud` defines `cluster`; `llnl-cluster` defines
+  `cluster`). `generic-x86` accepts neither. Passing an undefined
+  variant fails with `<name> is not a valid variant of <System>`.
+- **`benchpark experiment init` takes a system *directory*, not a name.**
+  Signature: `experiment init --dest=<dir> <system_def_dir> <Benchmark>
+  [+var ...]`. The `<system_def_dir>` is the `--dest` from
+  `benchpark system init`.
 - **`+openmp` requires the Spack package to define an openmp variant.** If
   it doesn't, keep the experiment `Mpionly` and set threading via an
   `OMP_NUM_THREADS` `environment_variable` in the ramble app instead.
