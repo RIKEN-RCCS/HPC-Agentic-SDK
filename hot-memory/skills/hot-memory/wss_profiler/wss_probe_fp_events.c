@@ -115,6 +115,11 @@ int main(int argc, char **argv)
     const char   *default_names[] = {"FP_FIXED_OPS_SPEC (scalar/NEON/ASIMD)",
                                      "FP_SCALE_OPS_SPEC (SVE)"};
     int n_default = 2;
+#elif defined(__x86_64__)
+    unsigned long default_codes[] = {0x1c7, 0x4c7};
+    const char   *default_names[] = {"FP_ARITH_INST_RETIRED.SCALAR_DOUBLE (Intel)",
+                                     "FP_ARITH_INST_RETIRED.256B_PACKED_DOUBLE (Intel)"};
+    int n_default = 2;
 #else
     unsigned long *default_codes = NULL;
     const char   **default_names = NULL;

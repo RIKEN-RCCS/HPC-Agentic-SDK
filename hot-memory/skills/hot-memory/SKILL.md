@@ -143,9 +143,17 @@ The probe reports KEY=VALUE lines:
   eval $(cd wss_profiler && PATH="$PWD:$PATH" ./wss_probe_fp_events 2>/dev/null)
   echo $WSS_PERF_FP_EVENTS
   ```
-  On aarch64, the probe defaults to `0x74,0x75` (FP_FIXED_OPS_SPEC,
-  FP_SCALE_OPS_SPEC). On other architectures, pass candidate codes from
-  `perf list` and the CPU PMU reference manual.
+  The probe ships architecture-specific defaults: aarch64 probes `0x74,0x75`
+  (FP_FIXED_OPS_SPEC, FP_SCALE_OPS_SPEC); x86_64 probes `0x1c7,0x4c7` (Intel
+  `fp_arith_inst_retired` scalar and 256-bit-packed double). On AMD or other
+  x86_64 microarchitectures these may report 0; pass explicit codes from
+  `perf list` and the CPU PMU reference manual. Raw `PERF_TYPE_RAW` codes are
+  encoded as `(umask << 8) | event`; e.g. event `0xc7` with umask `0x01`
+  (scalar double) is `0x1c7`.
+  On Intel hybrid CPUs (P-core/E-core, e.g. Alder Lake+) the raw PMU event
+  can land on a core where it does not count, so the probe may return 0 on
+  the first try. Re-run it once or twice; once the codes work they are
+  stable for the profiled run.
 - If FP event codes are found, **always inline them** in every command that
   runs the profiled binary:
   ```bash
@@ -211,6 +219,22 @@ which kernels to instrument:
 mpirun -np 4 /tmp/rank0_time.sh perf record -e cycles -F 99 --call-graph=dwarf \
     -o /tmp/wss_perf.data -- ./myapp [args] 2>&1 | tee phase2_perf.log
 perf report -n --stdio -i /tmp/wss_perf.data | head -200 > phase2_report.txt
+```
+
+**Build for attribution, not for speed.** Perf can only name functions that
+survive as distinct symbols. A normal `-O2` build inlines static helpers into
+their callers (everything collapses into `main`), so the report cannot guide
+instrumentation. Rebuild with `-O0 -g -fno-inline` (or `-Og -g`) for this
+phase, then switch back to the project's normal flags for the profiled run.
+
+**If `--call-graph=dwarf` fails** with `failed to process type: ...` or an
+unparseable `perf.data`, the dwarf unwinder is incompatible with this
+kernel/perf combo. Retry with frame-pointer unwinding (`-g --`) or no
+call-graph capture (drop `--call-graph=dwarf`):
+
+```bash
+mpirun -np 4 /tmp/rank0_time.sh perf record -e cycles -F 99 -g -- \
+    -o /tmp/wss_perf.data -- ./myapp [args] 2>&1 | tee phase2_perf.log
 ```
 
 Identify the top functions by sample percentage. Note which are in user
@@ -291,6 +315,11 @@ counting available), omit the prefix.
 **After the run, confirm the output does NOT contain `WSS_PERF_FP_EVENTS
 not set`.** If it does, the inline prefix was missing from that command —
 add it and rerun.
+
+**Do not pipe the run through `head` or `tail`.** The `[WSS]` lines stream
+live as each kernel finishes; appending `| head` sends SIGPIPE upstream,
+which kills `mpirun` early and silently truncates the run. Redirect to a
+file (`> phase3_run.log 2>&1`) and inspect it afterward.
 
 Parse the `[WSS]` lines from the log:
 
@@ -479,6 +508,12 @@ raw PMU `mem_access` events via `perf_event_open`. Set `WSS_PERF_MEM_EVENTS`
 to a comma-separated list of hex event codes. On aarch64, defaults to
 `0x13` (architectural MEM_ACCESS) if not set. Reports "M accesses" and
 "FLOP/access" instead of "MB accessed" and "FLOP/B-acc".
+
+On x86_64 there are no bundled `WSS_PERF_MEM_EVENTS` defaults; memory-event
+codes are model-specific and not verified across vendors. In practice the
+`accessed MB` column on x86_64 usually requires PAPI load/store events. If
+PAPI lacks them and no working `WSS_PERF_MEM_EVENTS` codes are supplied,
+`accessed MB` stays 0; hot-byte and FLOP measurements are unaffected.
 
 ---
 
