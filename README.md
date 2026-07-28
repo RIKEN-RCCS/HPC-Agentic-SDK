@@ -36,6 +36,7 @@ Then open `/plugins` in Codex and install the plugins you need.
 | [OpenACC](./openacc/) | Automatically insert OpenACC directives into Fortran code using a verified template library for reliable GPU parallelization |
 | [BenchKit](./benchkit/) | Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems |
 | [Benchpark](./benchpark/) | Use and contribute to Benchpark, a Spack+Ramble-based framework for specifying reproducible HPC benchmarks across multiple systems |
+| [Hot Memory](./hot-memory/) | Measure per-kernel hot working sets, memory traffic, and FLOPs in MPI C/C++/Fortran codes for GPU memory planning |
 
 ### RIKEN R-CCS facility agents
 

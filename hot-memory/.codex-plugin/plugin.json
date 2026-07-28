@@ -1,0 +1,22 @@
+{
+  "name": "hot-memory",
+  "version": "0.1.0",
+  "description": "Measure per-kernel hot working sets, memory traffic, and FLOPs in MPI C/C++/Fortran codes for GPU memory planning.",
+  "author": {
+    "name": "William Dawson"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "mpi", "profiling", "wss", "gpu", "memory", "working-set"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hot Memory",
+    "shortDescription": "Profile MPI kernel hot working sets and GPU memory needs.",
+    "longDescription": "Measure per-kernel hot memory, memory traffic, and FLOPs in MPI applications to plan GPU memory requirements. Fetches the WSS profiler library from GitHub, builds it locally, and instruments C/C++/Fortran code.",
+    "developerName": "William Dawson",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Measure the hot working set of my MPI kernels."
+    ]
+  }
+}

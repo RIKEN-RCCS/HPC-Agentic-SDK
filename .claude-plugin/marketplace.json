@@ -99,5 +99,16 @@
         "path": "benchpark"
       }
     }
+    ,
+    {
+      "id": "hot-memory",
+      "name": "Hot Memory",
+      "description": "Measure per-kernel hot working sets, memory traffic, and FLOPs in MPI C/C++/Fortran codes for GPU memory planning",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "hot-memory"
+      }
+    }
   ]
 }
