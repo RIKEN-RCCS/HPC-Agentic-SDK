@@ -48,7 +48,27 @@ on most Linux systems.
 
 ## Getting the profiler library
 
-The profiler source lives on GitHub. Fetch it into the project:
+The profiler source is **bundled with this skill** in the `wss_profiler/`
+directory next to this `SKILL.md` — it ships inside the
+`RIKEN-RCCS/hpc-agentic-sdk` repository, so no download is needed. Copy it
+into the project:
+
+```bash
+# <SKILL_DIR> = absolute path of the directory that contains this SKILL.md.
+# The agent knows this path: it is the location it opened this skill from.
+cp -r <SKILL_DIR>/wss_profiler wss_profiler
+chmod +x wss_profiler/wss_check
+```
+
+Resolve `<SKILL_DIR>` to the absolute directory holding this `SKILL.md`
+(e.g. `.../.crush/skills/hot-memory`, `.../.claude/skills/hot-memory`, or
+wherever the skill was installed). The bundled `wss_profiler/` contains
+`wss_profiler.h`, `wss_profiler.c`, `wss_profiler_f.c`,
+`wss_profiler_mod.f90`, `wss_runtime_probe.c`, `wss_probe_fp_events.c`,
+and the `wss_check` script.
+
+Fallback only if the bundled `wss_profiler/` is absent (someone installed
+just `SKILL.md` without the bundle) — fetch from the upstream mirror:
 
 ```bash
 mkdir -p wss_profiler
