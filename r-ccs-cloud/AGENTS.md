@@ -88,6 +88,15 @@ machine.
   single-node (`node_count: 1`). Found live, 2026-07-16, via a user hitting
   this while doing real research on the cluster — not from the guide.
   Documented in the submitting-jobs skill and `cloud_guide.md`.
+- **fx700 (A64FX) is 4 NUMA nodes ("CMGs") of 12 cores each** (cores 0-11,
+  12-23, 24-35, 36-47 — verified via `numactl --hardware`). MPI/hybrid jobs
+  should bind one rank per CMG: `mpirun -np 4 --bind-to core --map-by
+  numa:PE=12 ./app`, verified live via `mpirun --report-bindings` on a real
+  submitted job with `resources.exclusive_node_use: true`. `mpirun` nested
+  inside an interactive `srun` shell under-reports available slots and
+  fails ("not enough slots") — must run from a real submitted job. Found
+  live, 2026-07-17, from a user's real fx700 research workload. Documented
+  in the submitting-jobs skill and `cloud_guide.md`.
 
 ### Live validation (2026-07-10)
 

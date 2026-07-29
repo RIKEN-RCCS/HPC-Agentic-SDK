@@ -78,33 +78,39 @@
     "id": 12
   },
   {
+    "breadcrumb": "R-CCS Cloud > Job submission > fx700 process/thread affinity",
+    "url": "",
+    "text": "fx700 (A64FX) has 48 cores arranged as **4 NUMA nodes (\"CMGs\") of 12 cores\neach** (0-11, 12-23, 24-35, 36-47). Cross-CMG memory access is slower than\nlocal, so binding matters even on a single node.\n\nVerified live via a real submitted job and `mpirun --report-bindings`: for\nan MPI or hybrid MPI+OpenMP job, request one rank per CMG and bind\nexplicitly —\n\n```\nmpirun -np 4 --bind-to core --map-by numa:PE=12 ./app\n```\n\n— which places rank 0 on cores 0-11, rank 1 on 12-23, and so on. Keep\n`PE=<cores per rank>` matched so ranks divide evenly across the 4 CMGs for\nother rank counts. Request `resources.exclusive_node_use: true` so the\nwhole node's cores are available.\n\nThis must run from a properly **submitted** job, not `mpirun` nested inside\nan interactive `srun` shell — that under-reports available slots to\nOpenMPI's Slurm integration (it reads the Slurm task count, not\n`--cpus-per-task`) and fails with \"not enough slots available.\"\n\nFor a single OpenMP-only process spanning the whole node, set\n`OMP_PROC_BIND=close` and `OMP_PLACES=cores`, and initialize arrays in a\nparallel loop matching the compute loop's split (first-touch placement) so\npages don't all land on one CMG. Single-process runs showed more run-to-run\nvariance in testing than the CMG-per-rank MPI pattern above, even with\nbinding set — prefer the MPI pattern where the workload allows it.",
+    "id": 13
+  },
+  {
     "breadcrumb": "R-CCS Cloud > Job submission > GPU allocation",
     "url": "",
     "text": "GPUs are requested with `--gpus=<n>` (a job-total count), and `--nodes` is always\nstated explicitly. Set `resources.gpus` in the JobSpec to request them.\n\nThe unified CPU+GPU superchip partitions — **qc-gh200** and **ng-dgx-m[0-3]** —\ntake no GPU flag at all; the GPU is always present. Leave `resources.gpus` unset\nfor those; the plugin will not emit a GPU flag.",
-    "id": 13
+    "id": 14
   },
   {
     "breadcrumb": "R-CCS Cloud > Job submission > Checking on work",
     "url": "",
     "text": "Use the agent's status tools rather than memorizing commands: recent jobs, a\nsingle job's normalized state and queue reason, and live per-partition node\noccupancy are all available. Job stdout defaults to\n`<workdir>/slurm-<job_id>.out`.",
-    "id": 14
+    "id": 15
   },
   {
     "breadcrumb": "R-CCS Cloud > Storage",
     "url": "",
     "text": "Home directories live under `/home/<user>` and are shared across login and\ncompute nodes. Agent-created files (job scripts, staged uploads) are biased into\n`~/agent/` so they are easy to find rather than scattered across `$HOME`.",
-    "id": 15
+    "id": 16
   },
   {
     "breadcrumb": "R-CCS Cloud > Special cases and restrictions",
     "url": "",
     "text": "- **ai-h100l** is reserved for the \"High Performance Big Data Research Team\" and\n  the \"Data Management Platform Development Unit\". General users should use\n  **ai-h100l-pu**, which is the same hardware but capped at a **30-minute**\n  walltime.\n- **qc-h100** is under repair, and **qc-mi210**'s GPUs are still being set up —\n  check live state before relying on either.\n- **ng-dgx-m[0-3]** runs **Ubuntu**; every other partition runs **Rocky Linux**.\n  A binary or Python wheel built on Rocky may not work on ng-dgx without a\n  rebuild, and vice versa.\n- **fs-mi300a** is an APU: CPU and GPU share a single 512 GB HBM pool, so there\n  is no separate host-memory budget to reason about.\n- **Networking**: only InfiniBand partitions suit tightly-coupled multi-node MPI.\n  Ethernet-only partitions (genoa, genoa-m, b300, the ai-* family, mi100, r340,\n  ng-dgx-m*) work for multi-node jobs but with much higher latency — prefer\n  single-node or loosely-coupled work there.",
-    "id": 16
+    "id": 17
   },
   {
     "breadcrumb": "R-CCS Cloud > Common failure modes",
     "url": "",
-    "text": "- **\"Exec format error\"** — an x86_64 binary was sent to an aarch64 partition\n  (fx700, qc-gh200, ng-dgx). Rebuild for the target architecture (cross-compile\n  fx700 code on r340).\n- **\"module: command not found\"** — `/etc/profile` was not sourced. The plugin\n  emits it automatically; if you see this, check the executable didn't override\n  the environment.\n- **Command not found / link errors after loading a module** — the wrong\n  `system/<partition>` module for the partition the job landed on. Match the\n  module to the partition.\n- **`native_state` OUT_OF_MEMORY** — reduce ranks, request `resources.memory`, or\n  move to a larger-memory partition (genoa-m).\n- **`native_state` TIMEOUT** — raise the job's `duration` (and remember\n  ai-h100l-pu caps at 30 minutes).\n- **GPU tools report no devices** — `resources.gpus` was not set on a partition\n  that needs `--gpus=<n>`, or it was set on a superchip partition where it\n  shouldn't be.\n- **MPI job hangs or only one rank starts** — it was launched with `srun`.\n  There's no PMI support here; use `mpirun` instead (see \"MPI launch\" above).\n- **Accounts** — no `--account` is required; jobs without one use your default\n  Slurm account.",
-    "id": 17
+    "text": "- **\"Exec format error\"** — an x86_64 binary was sent to an aarch64 partition\n  (fx700, qc-gh200, ng-dgx). Rebuild for the target architecture (cross-compile\n  fx700 code on r340).\n- **\"module: command not found\"** — `/etc/profile` was not sourced. The plugin\n  emits it automatically; if you see this, check the executable didn't override\n  the environment.\n- **Command not found / link errors after loading a module** — the wrong\n  `system/<partition>` module for the partition the job landed on. Match the\n  module to the partition.\n- **`native_state` OUT_OF_MEMORY** — reduce ranks, request `resources.memory`, or\n  move to a larger-memory partition (genoa-m).\n- **`native_state` TIMEOUT** — raise the job's `duration` (and remember\n  ai-h100l-pu caps at 30 minutes).\n- **GPU tools report no devices** — `resources.gpus` was not set on a partition\n  that needs `--gpus=<n>`, or it was set on a superchip partition where it\n  shouldn't be.\n- **MPI job hangs or only one rank starts** — it was launched with `srun`.\n  There's no PMI support here; use `mpirun` instead (see \"MPI launch\" above).\n- **`mpirun` fails with \"not enough slots available\"** — it's nested inside\n  an interactive `srun` shell instead of run from a submitted job, or\n  `resources.exclusive_node_use` wasn't set. See \"fx700 process/thread\n  affinity\" above.\n- **fx700 job runs slower than expected despite correct core count** —\n  likely missing `--bind-to core --map-by numa:PE=<n>` on `mpirun`; ranks\n  can land on any CMG, including sharing one. See \"fx700 process/thread\n  affinity\" above.\n- **Accounts** — no `--account` is required; jobs without one use your default\n  Slurm account.",
+    "id": 18
   }
 ]

@@ -111,6 +111,54 @@ multi-node `mpirun` launch works. (`srun` itself is still fine for
 non-MPI/single-process work and interactive `srun --pty` sessions — the PMI
 gap only affects MPI rank bootstrap.)
 
+## fx700 (A64FX) affinity: bind processes to CMGs
+
+fx700's 48 cores are **4 NUMA nodes ("CMGs") of 12 cores each**
+(cores 0-11, 12-23, 24-35, 36-47 — confirmed via `numactl --hardware`).
+Cross-CMG memory access is slower than local, so an MPI/hybrid job that
+doesn't pin ranks to a CMG can land its processes anywhere, including
+sharing or straddling CMGs. Verified live (real submitted job, `mpirun
+--report-bindings`): request one rank per CMG and bind explicitly —
+
+```
+mpirun -np 4 --bind-to core --map-by numa:PE=12 ./app
+```
+
+This binds rank 0 to cores 0-11, rank 1 to 12-23, rank 2 to 24-35, rank 3 to
+36-47 — one rank per CMG, matching the standard A64FX layout. For a
+different rank count, keep `PE=<cores per rank>` so ranks still divide
+evenly across CMGs (e.g. `-np 2 --map-by numa:PE=24` for 2 ranks/2 CMGs
+each). **Be explicit even though OpenMPI's default binding sometimes lands
+in the same place for a clean 4-rank job** — its default heuristic isn't
+guaranteed for other rank counts, and an explicit `--map-by`/`--bind-to` is
+self-documenting in the job script.
+
+**This only works launched from a real submitted job — not from `mpirun`
+nested inside an interactive `srun` shell.** An `srun ... bash -c 'mpirun
+...'` wrapper under-reports available slots to OpenMPI ("not enough slots
+available") because Slurm's task count, not `--cpus-per-task`, is what
+`mpirun`'s Slurm integration reads. Always request
+`resources.exclusive_node_use: true` on fx700 so the whole node's cores are
+available to bind against:
+
+```json
+{
+  "name": "fx700-hybrid-job",
+  "executable": "module load system/fx700 FJSVstclanga && mpirun -np 4 --bind-to core --map-by numa:PE=12 ./app",
+  "resources": {"node_count": 1, "processes_per_node": 4, "exclusive_node_use": true},
+  "attributes": {"duration": "01:00:00", "queue_name": "fx700"}
+}
+```
+
+For a single OpenMP-only process spanning the whole node (no MPI), set
+`OMP_PROC_BIND=close OMP_PLACES=cores` in `environment` and make sure any
+array initialization is done in a `parallel for` matching the compute
+loop's split (first-touch) rather than serially from one thread — otherwise
+all pages can land on one CMG's memory. Some run-to-run bandwidth variance
+was observed on this shared cluster even with binding set, so treat single
+process/48-thread runs as less predictable than the CMG-per-rank MPI
+pattern above; prefer the latter when the workload allows it.
+
 ## R-CCS Cloud conventions
 
 - **GPU flag**: set `resources.gpus` → the script emits `--gpus=<n>`, and
@@ -133,6 +181,12 @@ gap only affects MPI rank bootstrap.)
 ## Don't
 
 - Don't launch MPI ranks with `srun` — no PMI support; use `mpirun` instead.
+- Don't submit an fx700 MPI/hybrid job without `--bind-to core --map-by
+  numa:PE=<n>` on `mpirun` and `resources.exclusive_node_use: true` — see
+  "fx700 affinity" above. Unbound ranks can land on any CMG, including
+  sharing one, and hurt performance.
+- Don't test `mpirun` by nesting it inside an interactive `srun` shell — it
+  under-reports available slots. Submit a real job instead.
 - Don't poll a submitted job's progress with `run_command_on_cluster` (raw
   `squeue`/`sacct`) — use `get_job_status`/`get_job_statuses` instead, even
   when you're the one deciding to check in, not the user asking.

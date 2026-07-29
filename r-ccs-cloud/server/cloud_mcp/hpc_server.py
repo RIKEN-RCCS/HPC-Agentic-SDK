@@ -13,7 +13,7 @@ under plugins/rccs-cloud/skills/, not in long docstrings here.
 import shlex
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from hpc_agent_core.mcp_server import MCPServer
 
 from hpc_agent_core.middleware import (
     download_file,
@@ -25,7 +25,7 @@ from hpc_agent_core.models import CompressionType, Job, JobSpec
 from hpc_agent_core.serving import serve
 from cloud_mcp import compute, config  # noqa: F401 -- config registers settings via configure()
 
-mcp = FastMCP("rccs-cloud-hpc")
+mcp = MCPServer("rccs-cloud-hpc")
 
 RESOURCE_ID = "rccs-cloud"
 

@@ -15,7 +15,7 @@ Two standing invariants (PORTING.md §10) shape this file:
     unless the user said to just run it. That is a behavioral rule the
     skills enforce; the tool docstrings restate it.
 """
-from mcp.server.fastmcp import FastMCP
+from hpc_agent_core.mcp_server import MCPServer
 
 from hpc_agent_core.middleware import (
     download_file,
@@ -27,7 +27,7 @@ from hpc_agent_core.models import CompressionType, Job, JobSpec
 from hpc_agent_core.serving import serve
 from hokusai_mcp import compute, config
 
-mcp = FastMCP("hokusai-hpc")
+mcp = MCPServer("hokusai-hpc")
 
 
 # ---------------------------------------------------------------------------

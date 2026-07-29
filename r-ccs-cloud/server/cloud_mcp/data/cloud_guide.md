@@ -128,6 +128,37 @@ other nodes — not provisioned here — prefer **single-node** jobs for MPI
 work (`resources.node_count: 1`, scale with `processes_per_node`) unless
 multi-node `mpirun` has been separately confirmed to work.
 
+### fx700 process/thread affinity
+
+fx700 (A64FX) has 48 cores arranged as **4 NUMA nodes ("CMGs") of 12 cores
+each** (0-11, 12-23, 24-35, 36-47). Cross-CMG memory access is slower than
+local, so binding matters even on a single node.
+
+Verified live via a real submitted job and `mpirun --report-bindings`: for
+an MPI or hybrid MPI+OpenMP job, request one rank per CMG and bind
+explicitly —
+
+```
+mpirun -np 4 --bind-to core --map-by numa:PE=12 ./app
+```
+
+— which places rank 0 on cores 0-11, rank 1 on 12-23, and so on. Keep
+`PE=<cores per rank>` matched so ranks divide evenly across the 4 CMGs for
+other rank counts. Request `resources.exclusive_node_use: true` so the
+whole node's cores are available.
+
+This must run from a properly **submitted** job, not `mpirun` nested inside
+an interactive `srun` shell — that under-reports available slots to
+OpenMPI's Slurm integration (it reads the Slurm task count, not
+`--cpus-per-task`) and fails with "not enough slots available."
+
+For a single OpenMP-only process spanning the whole node, set
+`OMP_PROC_BIND=close` and `OMP_PLACES=cores`, and initialize arrays in a
+parallel loop matching the compute loop's split (first-touch placement) so
+pages don't all land on one CMG. Single-process runs showed more run-to-run
+variance in testing than the CMG-per-rank MPI pattern above, even with
+binding set — prefer the MPI pattern where the workload allows it.
+
 ### GPU allocation
 
 GPUs are requested with `--gpus=<n>` (a job-total count), and `--nodes` is always
@@ -188,5 +219,13 @@ compute nodes. Agent-created files (job scripts, staged uploads) are biased into
   shouldn't be.
 - **MPI job hangs or only one rank starts** — it was launched with `srun`.
   There's no PMI support here; use `mpirun` instead (see "MPI launch" above).
+- **`mpirun` fails with "not enough slots available"** — it's nested inside
+  an interactive `srun` shell instead of run from a submitted job, or
+  `resources.exclusive_node_use` wasn't set. See "fx700 process/thread
+  affinity" above.
+- **fx700 job runs slower than expected despite correct core count** —
+  likely missing `--bind-to core --map-by numa:PE=<n>` on `mpirun`; ranks
+  can land on any CMG, including sharing one. See "fx700 process/thread
+  affinity" above.
 - **Accounts** — no `--account` is required; jobs without one use your default
   Slurm account.

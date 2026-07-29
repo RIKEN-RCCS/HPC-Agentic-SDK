@@ -6,7 +6,7 @@ IRI_CHECKLIST.md for what's implemented, deferred, or extended beyond spec.
 import shlex
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from hpc_agent_core.mcp_server import MCPServer
 
 from hpc_agent_core import middleware
 from hpc_agent_core.middleware import quote_path, run_command
@@ -14,7 +14,7 @@ from hpc_agent_core.models import CompressionType, Job, JobSpec
 from hpc_agent_core.serving import serve
 from rikyu_mcp import compute, config
 
-mcp = FastMCP("rikyu-hpc")
+mcp = MCPServer("rikyu-hpc")
 
 _TAR_FLAGS = {
     CompressionType.NONE: "cf",
