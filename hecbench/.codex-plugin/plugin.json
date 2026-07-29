@@ -1,0 +1,18 @@
+{
+  "name": "hecbench",
+  "version": "0.1.0+codex.20260729034333",
+  "description": "Match application kernels to representative HeCBench workloads by computational motif.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "HeCBench Kernel Matching",
+    "shortDescription": "Match code kernels to HeCBench workloads.",
+    "longDescription": "Identify the computational motifs in application kernels and rank the most similar HeCBench benchmarks using a source-informed motif catalog.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Education & Research",
+    "capabilities": [],
+    "defaultPrompt": "Identify the HeCBench workloads most similar to the key kernels in my code."
+  }
+}
