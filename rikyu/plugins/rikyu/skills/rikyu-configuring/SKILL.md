@@ -1,13 +1,16 @@
 ---
 name: rikyu-configuring
-description: Use when the user wants to set up, configure, or troubleshoot RikyuAgent — SSH access to the Rikyu cluster, the embedding endpoint for docs search (RAG), or the ~/.rikyu/config.json file. Also use when rikyu tools fail with connection or embedding errors.
+description: Use when the user wants to set up, configure, or troubleshoot RikyuAgent — SSH access to the Rikyu cluster, the embedding endpoint for docs search (RAG), or the ~/.hpc-agent/rikyu.json file. Also use when rikyu tools fail with connection or embedding errors.
 ---
 
 # Configuring RikyuAgent
 
-Settings live in `~/.rikyu/config.json` (env vars `RIKYU_HOST`,
-`RIKYU_EMBED_API_KEY` override it; the embedding key also falls back to the
-shared `RCCS_EMBED_API_KEY` — see below):
+Settings live in `~/.hpc-agent/rikyu.json` (the common directory shared by
+every hpc-agent-core plugin; env vars `RIKYU_HOST`, `RIKYU_EMBED_API_KEY`
+override it; the embedding key also falls back to the shared
+`RCCS_EMBED_API_KEY` — see below). A legacy `~/.rikyu/config.json` is still
+read if it's the only config present, but write new configs to the common
+location:
 
 ```json
 {
@@ -18,8 +21,9 @@ shared `RCCS_EMBED_API_KEY` — see below):
 
 ## Guided setup — interview the user, then write the file
 
-Read the existing `~/.rikyu/config.json` first (if any) and only ask about
-what's missing or being changed.
+Read the existing `~/.hpc-agent/rikyu.json` first (falling back to the
+legacy `~/.rikyu/config.json` if that's the only one present) and only ask
+about what's missing or being changed.
 
 1. **SSH** — ask how they reach the Rikyu login node:
    - An alias in `~/.ssh/config` (recommended) → `"host": "<alias>"`.
@@ -46,8 +50,10 @@ what's missing or being changed.
      they can `export RCCS_EMBED_API_KEY=<key>` once instead of putting the key in
      each plugin's config — `RIKYU_EMBED_API_KEY` and the config file still take
      precedence over it when set.
-3. **Write the file**, then `chmod 600 ~/.rikyu/config.json` — it may hold an
-   API key. Never commit it or echo the key back in conversation.
+3. **Write the file** to `~/.hpc-agent/rikyu.json` (`mkdir -p ~/.hpc-agent`
+   first if it doesn't exist yet), then `chmod 600 ~/.hpc-agent/rikyu.json`
+   — it may hold an API key. Never commit it or echo the key back in
+   conversation.
 4. **Validate** with the doctor (checks config, SSH, Slurm, endpoint, index):
    ```bash
    uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-doctor
