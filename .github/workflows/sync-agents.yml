@@ -50,14 +50,26 @@ jobs:
             r-ccs-cloud/plugins/rccs-cloud/.claude-plugin/plugin.json \
             r-ccs-cloud/plugins/rccs-cloud/.codex-plugin/plugin.json
 
+      - name: Sync Fugaku-Agent
+        run: |
+          git clone --depth=1 https://github.com/RIKEN-RCCS/Fugaku-Agent.git /tmp/fugaku-src
+          rsync -a --delete \
+            --exclude='/.git/' \
+            --exclude='/.claude-plugin/' \
+            /tmp/fugaku-src/ fugaku/
+          VER=$(grep '^version' fugaku/server/pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VER\"/" \
+            fugaku/plugins/fugaku/.claude-plugin/plugin.json \
+            fugaku/plugins/fugaku/.codex-plugin/plugin.json
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add hokusai/ rikyu/ r-ccs-cloud/
+          git add hokusai/ rikyu/ r-ccs-cloud/ fugaku/
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "sync: update Hokusai-Agent, Rikyu-Agent, and RCCS-CloudAgent mirrors"
+            git commit -m "sync: update Hokusai-Agent, Rikyu-Agent, RCCS-CloudAgent, and Fugaku-Agent mirrors"
             git push
           fi
