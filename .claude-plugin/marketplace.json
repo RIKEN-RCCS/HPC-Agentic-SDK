@@ -79,6 +79,12 @@
     }
     ,
     {
+      "name": "fugaku",
+      "description": "PJM (pjsub/pjstat/pjdel) job management, filesystem operations, and documentation search for the RIKEN Fugaku supercomputer",
+      "source": "./fugaku/plugins/fugaku"
+    }
+    ,
+    {
       "id": "benchkit",
       "name": "BenchKit",
       "description": "Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems",

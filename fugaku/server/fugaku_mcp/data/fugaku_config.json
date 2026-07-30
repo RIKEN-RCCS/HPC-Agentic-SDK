@@ -1,0 +1,65 @@
+{
+  "machine": "Fugaku",
+  "site": "RIKEN Center for Computational Science (R-CCS)",
+  "hardware": {
+    "cpu": "A64FX (Fujitsu/Arm, SVE-capable), CPU-only — no GPUs",
+    "total_nodes": 158976,
+    "interconnect": "Tofu interconnect D (6D mesh/torus)",
+    "job_scale": "1 to 82,944 nodes depending on resource group"
+  },
+  "login": {
+    "host": "login.fugaku.r-ccs.riken.jp",
+    "individual_nodes": "login1-login6 (round-robin via the shared hostname)",
+    "auth": "SSH v2, public-key only (Ed25519, ECDSA P-521, or RSA >=2048-bit); private keys are never uploaded — register the public key via the Fugaku website User Portal, or edit ~/.ssh/authorized_keys directly once you already have access",
+    "shell": "/bin/bash",
+    "arm_login_node": "A separate 'arm1' node (ssh arm1 from a normal login node) exists for Arm-native cross-building only — no pjsub/pjstat there",
+    "file_transfer": "sftp/scp/WinSCP over the same login hostname; ftp and r-commands are prohibited"
+  },
+  "scheduler": {
+    "type": "Fujitsu PJM (\"Job Operation Software\")",
+    "submit": "pjsub",
+    "status": "pjstat",
+    "cancel": "pjdel",
+    "hold": "pjhold",
+    "release": "pjrls",
+    "alter": "pjalter (queued/held jobs only)",
+    "acl_and_limits": "pjacl --rg <rscgrp> (a resource group's node/elapse min-max-default for your account); pjstat --limit (your live concurrent-submission/node/core quotas)",
+    "group_directive": "#PJM -g <groupname>",
+    "group_directive_note": "The project group is never hardcoded: set spec.attributes.account, or configure defaults.group in ~/.hpc-agent/fugaku.json (or FUGAKU_GROUP). The shared 'fugaku' group every account belongs to is explicitly denied job submission — confirmed live via `pjacl --rg small` (\"pjsub + deny g(fugaku)\"). Run `id` to see your real project groups.",
+    "no_stdout_override": "pjsub has no flag to set a custom stdout/stderr path — output always lands at '<jobname>.<jobid>.out' / '.err' in the submission directory",
+    "no_gpu": "Fugaku's compute nodes have no GPUs; resources.gpus / gpu_cores_per_process must stay unset",
+    "mpi_launch": "mpiexec -n <N> inside the job script (only needed when more than one task is requested — Fugaku's own single-node sample script runs the executable directly with no mpiexec at all)",
+    "job_history_retention_days": 90
+  },
+  "resource_groups": {
+    "note": "Node/elapse ranges below are the values documented in RIKEN's official user guide as of this port; they can differ per project and the full production list lives on the Fugaku website's 'Resource group configuration' page (not mirrored here — see PORTING.md §2 on why this repo doesn't auto-fetch it). Always confirm with `pjacl --rg <name>` for your own account before relying on a number here.",
+    "trial_project_note": "The 'trial' group (the default Startup Project every new Fugaku account gets) can only submit to the spot-* resource groups (spot-small, spot-int, spot-large, spot-middle) — small/large/int are rejected under it. Check which project group a job will actually run under before offering small/large; run `id` to see whether the account has a real research-project group beyond 'trial'.",
+    "small": {"role": "default batch group", "node_range": "1-384", "elapse_max": "72:00:00"},
+    "large": {"role": "large batch group", "node_range": "385-12288", "elapse_max": "24:00:00"},
+    "int": {"role": "interactive (pjsub --interact default group)", "node_range": "1-12", "elapse_max": "06:00:00 (documented default; varies per project — this account's own pjacl reports up to 24:00:00)"},
+    "spot-small": {"role": "low-priority/free variant of small", "note": "runs only on otherwise-idle nodes; excluded from fee-based projects"},
+    "spot-large": {"role": "low-priority/free variant of large", "note": "capped at 4h guaranteed, up to 12h if uncontested"},
+    "spot-int": {"role": "low-priority/free interactive variant", "note": "capped at 4h guaranteed, up to 6h if uncontested"},
+    "spot-middle": {"role": "low-priority/free mid-size variant"}
+  },
+  "storage": {
+    "concept": "Layered storage: fast, ephemeral, LLIO-managed first-layer cache in front of persistent second-layer FEFS (Lustre). Data placed only in the first layer disappears at job end unless explicitly copied out.",
+    "home": {"path": "/home/<username>", "quota": "20 GiB/user", "note": "too small to use as a job execution area — use the group data volume instead"},
+    "group_data": {"path": "/vol0n0m/data/<groupname>/", "quota": "5 TiB/group, 1.5M files/group"},
+    "group_share": {"path": "/vol0n0m/share/<groupname>/", "note": "cross-group sharing via ACL; shares the data+share quota"},
+    "2ndfs": {"path": "/2ndfs/<groupname>/ (volume /vol0001)", "note": "direct FEFS access, bypasses the LLIO cache"},
+    "node_local_tmp": {"env_var": "$PJM_LOCALTMP", "scope": "node-local, not shared", "lifetime": "created at job start, deleted at job end"},
+    "shared_tmp": {"env_var": "$PJM_SHAREDTMP", "scope": "shared across all nodes within the same job", "lifetime": "created at job start, deleted at job end"},
+    "gfscache_declaration": "A job touching any second-layer volume outside $HOME (or using Spack, also under /vol0004) must declare it via '#PJM -x PJM_LLIO_GFSCACHE=<volume>' — resolved from defaults.gfscache_volume in ~/.hpc-agent/fugaku.json (or FUGAKU_GFSCACHE), never hardcoded (per-project).",
+    "backup": "Fugaku does not back up user data — self-managed."
+  },
+  "modules": {
+    "system": "Environment Modules package (not Lmod)",
+    "commands": ["module avail", "module list", "module load lang", "module unload lang", "module purge", "module switch lang/tcsds-1.2.43", "module whatis", "module show lang", "module help lang"],
+    "fujitsu_compiler": "Native/default toolchain, module lang/tcsds-* (Fujitsu Technical Computing Suite)",
+    "gcc": "Cross-compile GCC at /vol0004/apps/oss/gcc-arm-*/setup-env.sh on the login node, or native GCC on a compute node via Spack",
+    "llvm": "module load LLVM/llvmorg-* on either login node (cross) or compute node (native)",
+    "spack": "Available as a separate package manager, e.g. /vol0004/apps/oss/spack/share/spack/setup-env.sh",
+    "cross_compilation_note": "Compute nodes are A64FX/Arm; ordinary login nodes are Intel x86. Building a binary that runs in a batch job requires a cross compiler on the login node (Fujitsu, GCC-for-arm, or LLVM's cross_clangfx build) — plain gcc/clang on a login node targets the login node's own Intel CPU, not the compute nodes."
+  }
+}

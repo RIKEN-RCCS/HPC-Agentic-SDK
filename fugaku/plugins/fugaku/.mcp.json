@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "fugaku-hpc": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/Fugaku-Agent.git@main#subdirectory=server",
+        "fugaku-hpc-mcp"
+      ],
+      "env": {}
+    },
+    "fugaku-docs": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/Fugaku-Agent.git@main#subdirectory=server",
+        "fugaku-docs-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "fugaku",
+  "version": "0.1.1",
+  "description": "Interact with the RIKEN Fugaku supercomputer: submit and monitor PJM (pjsub/pjstat/pjdel) jobs, manage files on the cluster, and search the built-in Fugaku guide.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/Fugaku-Agent",
+  "keywords": ["hpc", "pjm", "pjsub", "fugaku", "riken", "supercomputer"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Fugaku",
+    "shortDescription": "Submit and monitor Fugaku PJM jobs and search the Fugaku guide.",
+    "longDescription": "Interact with the RIKEN Fugaku supercomputer from Codex: submit and monitor PJM (pjsub/pjstat/pjdel) jobs, manage files on the cluster, and search the built-in Fugaku guide.",
+    "developerName": "William Dawson",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Show Fugaku cluster status.",
+      "Submit a small Fugaku test job.",
+      "Search the Fugaku guide."
+    ]
+  }
+}

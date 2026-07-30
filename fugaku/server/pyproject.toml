@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fugaku-mcp"
+version = "0.1.1"
+description = "MCP servers for the RIKEN Fugaku supercomputer: PJM (pjsub/pjstat/pjdel) job interaction and documentation search (a thin skin over hpc-agent-core)."
+requires-python = ">=3.10"
+dependencies = [
+    # Pinned exactly, not a range — see hpc-agent-core's PORTING.md §9.
+    # Bump deliberately, after re-running tests/smoke.py against the new version.
+    "hpc-agent-core==0.4.10",
+]
+
+[project.scripts]
+fugaku-hpc-mcp = "fugaku_mcp.hpc_server:main"
+fugaku-docs-mcp = "fugaku_mcp.docs_server:main"
+fugaku-doctor = "fugaku_mcp.doctor:main"
+
+[tool.setuptools.packages.find]
+include = ["fugaku_mcp*"]
+
+[tool.setuptools.package-data]
+fugaku_mcp = [
+    "data/*.json",
+    "data/*.md",
+    "data/docs_index/*",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -48,6 +48,15 @@ Full cluster agents for job submission, monitoring, and filesystem operations vi
 | [hokusai](./hokusai/) | HOKUSAI BigWaterfall2 (HBW2, x86_64) | Submit and monitor Slurm jobs, manage files, search the HBW2 User's Guide |
 | [rikyu](./rikyu/) | AI4S (NVIDIA GB200, aarch64) | Submit and monitor Slurm jobs, manage files, search the AI4S documentation |
 | [rccs-cloud](./r-ccs-cloud/) | R-CCS Cloud (~20 partitions: A64FX, x86_64, NVIDIA/AMD/Intel GPUs) | Submit and monitor Slurm jobs, manage files, search the built-in documentation |
+| [fugaku](./fugaku/) | Fugaku (A64FX, aarch64) | Submit and monitor PJM (pjsub/pjstat/pjdel) jobs, manage files, search the built-in documentation |
+
+> **fugaku is an unofficial community port.** The official Fugaku MCP
+> server, built and maintained by the Fugaku operations team, is
+> [RIKEN-RCCS/fugaku-mcp](https://github.com/RIKEN-RCCS/fugaku-mcp) — prefer
+> that where it covers what you need. This plugin (built on the shared
+> `hpc-agent-core` framework other agents here also use) is not a
+> replacement or competing effort; see its own
+> [README](./fugaku/README.md) for more.
 
 ```
 /plugin install hokusai

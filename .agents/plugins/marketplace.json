@@ -101,6 +101,18 @@
       "category": "Education & Research"
     },
     {
+      "name": "fugaku",
+      "source": {
+        "source": "local",
+        "path": "./fugaku/plugins/fugaku"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education & Research"
+    },
+    {
       "name": "hot-memory",
       "source": {
         "source": "local",
