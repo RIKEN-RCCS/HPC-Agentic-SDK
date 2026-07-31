@@ -44,7 +44,7 @@
       "name": "r-ccs-cloud",
       "source": {
         "source": "local",
-        "path": "./r-ccs-cloud"
+        "path": "./r-ccs-cloud/plugins/rccs-cloud"
       },
       "policy": {
         "installation": "AVAILABLE",
