@@ -155,3 +155,7 @@ consumes allocation time. Rebuild the docs index after editing the guide:
 ```bash
 uv run python -m hpc_agent_core.rag.ingest
 ```
+
+## License
+
+AGPL-3.0-or-later — see [LICENSE](LICENSE).

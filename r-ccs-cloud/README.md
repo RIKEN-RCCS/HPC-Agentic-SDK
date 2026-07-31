@@ -154,3 +154,7 @@ uv run python -m cloud_mcp.ingest        # rebuild the docs index after editing 
 See [AGENTS.md](AGENTS.md) for the design rules, cluster facts, and repo map,
 and [hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md)
 for the general porting process this repo follows.
+
+## License
+
+AGPL-3.0-or-later — see [LICENSE](LICENSE).

@@ -4,8 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hokusai-mcp"
-version = "0.3.6"
+version = "0.3.7"
 description = "MCP plugin for HOKUSAI BigWaterfall2 (HBW2), the RIKEN R-CCS CPU-first Slurm cluster — submit and monitor jobs, manage files, and search the machine guide. A thin skin over hpc-agent-core."
+license = {text = "AGPL-3.0-or-later"}
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+]
 requires-python = ">=3.10"
 dependencies = [
     # Pinned exactly, not a range — see PORTING.md §9. Bump deliberately,

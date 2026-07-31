@@ -162,3 +162,7 @@ uv run python -m hokusai_mcp.ingest
 
 Commit the resulting `hokusai_mcp/data/docs_index/` (chunks.json, and
 embeddings.npy if an embedding API key was configured at ingest time).
+
+## License
+
+AGPL-3.0-or-later — see [LICENSE](LICENSE).

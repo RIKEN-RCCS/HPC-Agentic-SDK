@@ -4,8 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rikyu-mcp"
-version = "0.5.1"
+version = "0.5.2"
 description = "MCP servers for the RIKEN Rikyu supercomputer: Slurm interaction and documentation search."
+license = {text = "AGPL-3.0-or-later"}
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+]
 requires-python = ">=3.10"
 dependencies = [
     # Pinned exactly, not a range — see PORTING.md §9. Bump deliberately,

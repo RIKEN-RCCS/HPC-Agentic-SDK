@@ -4,8 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fugaku-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP servers for the RIKEN Fugaku supercomputer: PJM (pjsub/pjstat/pjdel) job interaction and documentation search (a thin skin over hpc-agent-core)."
+license = {text = "AGPL-3.0-or-later"}
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+]
 requires-python = ">=3.10"
 dependencies = [
     # Pinned exactly, not a range — see hpc-agent-core's PORTING.md §9.

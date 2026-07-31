@@ -1,6 +1,6 @@
 {
   "name": "fugaku",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Interact with the RIKEN Fugaku supercomputer: submit and monitor PJM (pjsub/pjstat/pjdel) jobs, manage files on the cluster, and search the built-in Fugaku guide.",
   "author": {
     "name": "William Dawson",
