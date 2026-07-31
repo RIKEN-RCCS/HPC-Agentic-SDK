@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__rikyu-hpc__submit_job|mcp__plugin_rikyu_rikyu-hpc__submit_job",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); tool=$(jq -r \".tool_name\" <<<\"$input\"); billable=$(jq -r --arg t \"$tool\" \"(.tool_input.command // \\\"\\\") as \\$c | ((\\$t==\\\"mcp__rikyu-hpc__submit_job\\\") or (\\$t==\\\"mcp__plugin_rikyu_rikyu-hpc__submit_job\\\") or (\\$t==\\\"Bash\\\" and (\\$c | test(\\\"tests/smoke\\\\\\\\.py --job|sbatch|srun|salloc\\\"))))\" <<<\"$input\"); if [ \"$billable\" = \"true\" ]; then jq -n \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"ask\\\",permissionDecisionReason:\\\"RIKYU compute is billed with no usage cap - confirm this job submission is intentional.\\\"}}\"; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -144,10 +144,14 @@ search outside RIKEN's network — not blocking).
 
 ```
 cd server
-uv run python -m rikyu_mcp.doctor          # health check
-uv run python tests/smoke.py               # read-only MCP stdio test
-uv run python tests/smoke.py --job         # + submits a real 1-GPU job
+uv run python -m rikyu_mcp.doctor                     # health check
+uv run python tests/smoke.py                          # read-only MCP stdio test
+uv run python tests/smoke.py --job --confirm-billing  # + submits a real 1-GPU job
 ```
+
+RIKYU compute is billed with no usage limit configured, so `--job` alone
+refuses and exits non-zero — pass `--confirm-billing` alongside it to
+actually submit.
 
 Rebuilding the docs index after editing `rikyu_guide.md`:
 

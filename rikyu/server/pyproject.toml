@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rikyu-mcp"
-version = "0.4.5"
+version = "0.5.1"
 description = "MCP servers for the RIKEN Rikyu supercomputer: Slurm interaction and documentation search."
 requires-python = ">=3.10"
 dependencies = [
-    # Pinned to a compatible range, not left open — see PORTING.md §9.
-    # Re-check `pip index versions hpc-agent-core` before bumping the ceiling.
-    # Needs >=0.4 for SchedulerBackend.get_live_resources()/get_drained_nodes().
-    "hpc-agent-core>=0.4,<0.5",
+    # Pinned exactly, not a range — see PORTING.md §9. Bump deliberately,
+    # after re-running tests/smoke.py against the new version; don't just
+    # widen the ceiling.
+    "hpc-agent-core==0.4.9",
 ]
 
 [project.scripts]

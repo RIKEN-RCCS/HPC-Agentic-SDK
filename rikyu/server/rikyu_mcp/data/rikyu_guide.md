@@ -52,6 +52,18 @@ expected. Slurm accounting (`sacct`) is available on RIKYU, so job history
 beyond what's currently queued or running is queryable, not just the live
 queue.
 
+**Launch MPI programs with `mpirun`, not `srun`.** Verified live: `srun`
+fails MPI programs at `MPI_Init` with an internal-runtime error, even
+though `srun --mpi=list` shows `pmi2`/`pmix` plugins registered. `mpirun`
+(from an MPI-capable module — `nvhpc-hpcx`/`nvhpc-hpcx-cuda13`, not
+`nvhpc-nompi`) works correctly, both single-node and real multi-node,
+*as long as the job's Slurm allocation gives it enough task slots* — set
+`resources.processes_per_node` to your rank count, or `mpirun` fails with
+"not enough slots" even though nothing else is wrong. `srun` itself is
+still fine outside MPI (interactive `salloc`/`srun --pty`, or
+`srun --overlap --jobid <id>` to attach to a running job for diagnostics)
+— the failure is specifically MPI rank bootstrap.
+
 ## Job resource limits
 
 Only seven GPU counts are accepted per job: 1, 2, 3, 4, 8, 12, or 16 — there
@@ -141,6 +153,12 @@ or submit a build as its own batch job.
 - **`matches multiple packages` from `spack load`** — more than one build
   of that name is installed; disambiguate with a hash from `spack find -lx
   <name>`, e.g. `spack load /5rny4xu`.
+- **An MPI job aborts immediately in `MPI_Init`** — it was launched with
+  `srun`. Use `mpirun` instead (see "Slurm" above); this is unrelated to
+  the implementation-mismatch failure below.
+- **`mpirun` fails with "not enough slots available"** — the job didn't set
+  `resources.processes_per_node` to match its rank count, so Slurm only
+  gave it one task slot. Set it explicitly.
 - **An MPI job won't start, or errors during communication** — the MPI
   implementation the application was built against doesn't match what's
   actually being launched at runtime. Confirm what an application was built

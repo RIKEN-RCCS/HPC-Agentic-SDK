@@ -13,7 +13,7 @@ description: Use when the user wants to run, submit, or launch a job (training, 
    ```json
    {
      "name": "train-vit",
-     "executable": "module load nvhpc && srun python train.py",
+     "executable": "module load nvhpc-hpcx && mpirun -np 2 python train.py",
      "directory": "/home/<user>/experiments/vit",
      "resources": {"gpus": 2, "processes_per_node": 2},
      "attributes": {"duration": "12:00:00", "queue_name": "gpu"}
@@ -21,6 +21,28 @@ description: Use when the user wants to run, submit, or launch a job (training, 
    ```
    The rendered sbatch script is kept on the cluster under `~/agent/jobs/` — `fs_view` it if the user wants to inspect what was submitted.
 4. **Verify**: `get_job_status` right after submission. `QUEUED` with a `reason` explains any wait; stdout lands in `<workdir>/slurm-<job_id>.out`.
+
+## MPI launch: use mpirun, not srun
+
+Verified live: `srun` fails to launch MPI ranks on RIKYU — `MPI_Init` aborts
+with an internal-runtime failure, even though `srun --mpi=list` shows
+`pmi2`/`pmix` plugins registered. Launch MPI programs with `mpirun`
+instead, after loading an MPI-capable module (`nvhpc-hpcx` or
+`nvhpc-hpcx-cuda13`, not `nvhpc-nompi`):
+`module load nvhpc-hpcx && mpirun -np <n> ./a.out`.
+
+**Set `resources.processes_per_node` to match your rank count** — `mpirun`
+reads available task slots from the Slurm allocation, and a job that only
+requests GPUs without also setting `processes_per_node` gets just 1 slot,
+so `mpirun -np 2` (or more) fails with "not enough slots" before it even
+starts. This is unrelated to the `srun` issue above; both single-node and
+real multi-node `mpirun` launches work correctly once slots are sized
+right — verified live with a real 2-node, 8-rank job (`gpus: 8,
+processes_per_node: 4`), no hostfile or extra setup needed. (`srun` itself
+is still fine for non-MPI use — interactive `salloc`/`srun --pty`, or
+attaching to a running job with `srun --overlap --jobid <id>` for
+diagnostics like `nvidia-smi`; the failure is specifically MPI rank
+bootstrap.)
 
 ## Rikyu conventions
 
@@ -33,6 +55,9 @@ description: Use when the user wants to run, submit, or launch a job (training, 
 
 ## Don't
 
+- Don't launch MPI ranks with `srun` — `MPI_Init` fails; use `mpirun` instead.
+- Don't submit an MPI job without setting `resources.processes_per_node` —
+  `mpirun` will fail with "not enough slots" even though the job runs fine.
 - Don't run computation on the login node — submit a job.
 - Don't guess Rikyu-specific details — use `search_docs` from the rikyu-docs server. Note it searches a bundled guide, not a live site — never tell the user to go check a URL for more detail.
 - Don't `cancel_job` without confirming with the user.
