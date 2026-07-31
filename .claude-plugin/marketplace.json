@@ -116,5 +116,16 @@
         "path": "hot-memory"
       }
     }
+    ,
+    {
+      "id": "hecbench",
+      "name": "HeCBench Kernel Matching",
+      "description": "Match application kernels to representative HeCBench workloads by computational motif",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "hecbench"
+      }
+    }
   ]
 }
