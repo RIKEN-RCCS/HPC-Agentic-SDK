@@ -41,7 +41,7 @@
       "category": "Developer Tools"
     },
     {
-      "name": "r-ccs-cloud",
+      "name": "rccs-cloud",
       "source": {
         "source": "local",
         "path": "./r-ccs-cloud/plugins/rccs-cloud"
