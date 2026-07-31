@@ -113,6 +113,30 @@
       "category": "Education & Research"
     },
     {
+      "name": "benchkit",
+      "source": {
+        "source": "local",
+        "path": "./benchkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "benchpark",
+      "source": {
+        "source": "local",
+        "path": "./benchpark"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
       "name": "hot-memory",
       "source": {
         "source": "local",
