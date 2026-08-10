@@ -7,8 +7,10 @@ description: Submit and describe PJM jobs on Fugaku — resource group selection
 
 1. Choose a PJM resource group for `attributes.queue_name` — `small` (1–384
    nodes, up to 72h), `large` (385+ nodes, up to 24h), `int` (interactive),
-   or a `spot-*` low-priority variant. Confirm the real min/max/default for
-   the account with `run_command_on_cluster("pjacl --rg small")` if unsure.
+   `f-pt` (priority, consumes Fugaku Points), or a `spot-*` low-priority
+   variant. Confirm the real min/max/default for the account with
+   `run_command_on_cluster("pjacl --rg small")` or
+   `run_command_on_cluster("pjacl --rg f-pt")` if unsure.
 2. Every job needs a project group: set `attributes.account` explicitly, or
    rely on `defaults.group` in `~/.hpc-agent/fugaku.json` (or
    `FUGAKU_GROUP`) — `submit_job` raises a clear error if neither is set.
@@ -35,6 +37,14 @@ description: Submit and describe PJM jobs on Fugaku — resource group selection
 7. Show the user the JobSpec (or the rendered script), then call
    `submit_job`. Inspect the stored script under `~/agent/jobs/` and poll
    with `get_job_status`.
+8. The standard A64FX MPI+OpenMP layout is 4 ranks per node
+   (`--mpi max-proc-per-node=4`) with 12 OpenMP threads per rank
+   (`OMP_NUM_THREADS=12`), fully utilizing 48 cores per node.
+9. **`f-pt` is a priority queue that consumes Fugaku Points** — it is
+   **not free**. Before using it, confirm with the user and check the
+   remaining point balance with `run_command_on_cluster("accountj_pt")`.
+   Switch to `f-pt` only for deliberate fast-turnaround validation;
+   revert to `small` for production benchmarking.
 
 Use `small` with a short `elapse` for validation jobs. Never run heavy
 computation on the login node — submit a job instead.

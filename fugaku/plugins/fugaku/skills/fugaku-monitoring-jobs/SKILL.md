@@ -25,3 +25,21 @@ description: Check PJM job status, output, and queue/quota info on Fugaku.
   are the more reliable static reference.
 - To cancel, call `cancel_job`; to change a still-queued job's wall time,
   call `update_job` with `time_limit` (uses `pjalter`).
+
+### Fujitsu MPI per-rank stdout paths
+
+Fujitsu MPI intercepts per-rank `stdout`/`stderr` and writes them to
+`output.<jobid>/<rank_path>/stdout.<step>.<rank>` inside the job's working
+directory. The PJM `<name>.<job_id>.out` file in the submission directory is
+often empty or contains only the scheduler wrapper.
+
+Inside a running job, `$PJM_JOBID` exposes the current job ID. After a job
+finishes, search its working directory with:
+
+```sh
+find . -path "*output.${PJM_JOBID:-<JOBID>}*" -name "stdout*" | sort
+```
+
+Programs that write their own log files (e.g. a rank-local `output.log`) may also end
+up empty if the rank's filesystem view is isolated — in that case the per-rank
+`stdout*` files are the authoritative output.

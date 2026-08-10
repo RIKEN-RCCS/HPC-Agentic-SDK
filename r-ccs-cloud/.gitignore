@@ -12,3 +12,6 @@ openapi.json
 # generated and would never actually get committed.
 # uv tool run resolves its own dependencies; a committed lock file would drift without benefit
 server/uv.lock
+# examples/reproduction_demo.ipynb writes its downloaded artifacts here at run
+# time; NOT examples/.hpc_cache/ — that's the committed, replayable recording.
+examples/downloads/

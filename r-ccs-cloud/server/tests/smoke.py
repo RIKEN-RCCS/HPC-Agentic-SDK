@@ -31,9 +31,9 @@ REMOTE_DIR = "agent/smoke"  # under ~/agent/, per the visible-directory invarian
 async def call(session: ClientSession, tool: str, args: dict | None = None) -> str:
     result = await session.call_tool(tool, args or {})
     text = "\n".join(c.text for c in result.content if c.type == "text")
-    status = "ERROR" if result.isError else "ok"
+    status = "ERROR" if result.is_error else "ok"
     print(f"--- {tool} [{status}] ---\n{text[:1200]}\n")
-    if result.isError:
+    if result.is_error:
         raise RuntimeError(f"{tool} failed: {text}")
     return text
 

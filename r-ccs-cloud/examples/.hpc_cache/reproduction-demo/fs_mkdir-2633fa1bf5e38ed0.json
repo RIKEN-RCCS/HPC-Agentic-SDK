@@ -1,0 +1,7 @@
+{
+  "tool": "fs_mkdir",
+  "args": {
+    "path": "agent/notebook-demo"
+  },
+  "result": "created: /hs/work0/home/users/william.dawson/agent/notebook-demo"
+}

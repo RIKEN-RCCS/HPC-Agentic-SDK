@@ -1,0 +1,27 @@
+{
+  "tool": "wait_for_job",
+  "args": {
+    "job_id": "266362",
+    "status_tool": "get_job_status"
+  },
+  "result": {
+    "id": "266362",
+    "status": {
+      "state": "completed",
+      "time": 1785826159.0,
+      "message": null,
+      "exit_code": 0,
+      "meta_data": {
+        "native_state": "COMPLETED",
+        "name": "notebook-demo",
+        "partition": "fx700",
+        "elapsed": "00:00:01",
+        "start_time": "2026-08-04T15:49:18",
+        "end_time": "2026-08-04T15:49:19",
+        "nodes": "fx12",
+        "workdir": "/home/users/william.dawson/agent/notebook-demo"
+      }
+    },
+    "job_spec": null
+  }
+}

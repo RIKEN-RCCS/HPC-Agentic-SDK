@@ -24,7 +24,7 @@ from mcp.client.stdio import stdio_client
 async def _call(session: ClientSession, name: str, args: dict):
     result = await session.call_tool(name, args)
     text = "\n".join(c.text for c in result.content if getattr(c, "type", "") == "text")
-    if result.isError:
+    if result.is_error:
         raise RuntimeError(f"{name} errored: {text}")
     return text
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fugaku-mcp"
-version = "0.1.2"
+version = "0.1.3"
 description = "MCP servers for the RIKEN Fugaku supercomputer: PJM (pjsub/pjstat/pjdel) job interaction and documentation search (a thin skin over hpc-agent-core)."
 license = {text = "AGPL-3.0-or-later"}
 classifiers = [
@@ -14,7 +14,7 @@ requires-python = ">=3.10"
 dependencies = [
     # Pinned exactly, not a range — see hpc-agent-core's PORTING.md §9.
     # Bump deliberately, after re-running tests/smoke.py against the new version.
-    "hpc-agent-core==0.4.10",
+    "hpc-agent-core==0.5.0",
 ]
 
 [project.scripts]

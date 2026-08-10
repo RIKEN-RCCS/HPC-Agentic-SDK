@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rccs-cloud-mcp"
-version = "0.2.10"
+version = "0.2.11"
 description = "MCP servers for the RIKEN R-CCS Cloud: Slurm interaction and documentation search, built as a thin skin over hpc-agent-core."
 license = {text = "AGPL-3.0-or-later"}
 classifiers = [
@@ -14,7 +14,7 @@ requires-python = ">=3.10"
 dependencies = [
     # Pinned exactly, not a range — see PORTING.md §9. Bump deliberately,
     # after re-running tests/smoke.py against the new version.
-    "hpc-agent-core==0.4.9",
+    "hpc-agent-core==0.5.0",
     # No direct "mcp" dependency — hpc_server.py/docs_server.py import
     # MCPServer from hpc_agent_core.mcp_server, the only place in the family
     # that depends on the MCP SDK directly (see its docstring for why).

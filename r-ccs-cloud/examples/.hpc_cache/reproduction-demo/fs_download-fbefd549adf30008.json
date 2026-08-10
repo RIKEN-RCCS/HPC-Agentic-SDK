@@ -1,0 +1,13 @@
+{
+  "tool": "fs_download",
+  "args": {
+    "path": "agent/notebook-demo/result.json"
+  },
+  "result": {
+    "local_path": "/tmp/notebook-demo-result.json",
+    "bytes": 72,
+    "sha256": "ffa06c6ab153609df05e45d0565b2c8311eb8f3c4ecfecbc5e5383f3167722a8",
+    "verified": true,
+    "transport": "rsync"
+  }
+}

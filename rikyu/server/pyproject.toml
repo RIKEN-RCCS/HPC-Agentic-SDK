@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rikyu-mcp"
-version = "0.5.2"
+version = "0.5.3"
 description = "MCP servers for the RIKEN Rikyu supercomputer: Slurm interaction and documentation search."
 license = {text = "AGPL-3.0-or-later"}
 classifiers = [
@@ -15,7 +15,7 @@ dependencies = [
     # Pinned exactly, not a range — see PORTING.md §9. Bump deliberately,
     # after re-running tests/smoke.py against the new version; don't just
     # widen the ceiling.
-    "hpc-agent-core==0.4.9",
+    "hpc-agent-core==0.5.0",
 ]
 
 [project.scripts]

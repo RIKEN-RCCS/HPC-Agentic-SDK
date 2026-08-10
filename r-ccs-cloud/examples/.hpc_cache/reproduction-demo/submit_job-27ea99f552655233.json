@@ -1,0 +1,21 @@
+{
+  "tool": "submit_job",
+  "args": {
+    "spec": {
+      "name": "notebook-demo",
+      "executable": "module load system/fx700 FJSVstclanga\nsum=$(awk 'BEGIN{for(i=1;i<=100000;i++)s+=i*i; print s}')\nprintf '{\"sum_of_squares\": %s, \"host\": \"%s\"}' \"$sum\" \"$(hostname)\" > result.json\n",
+      "directory": "agent/notebook-demo",
+      "attributes": {
+        "duration": "00:05:00",
+        "queue_name": "fx700"
+      },
+      "resources": {
+        "node_count": 1
+      }
+    }
+  },
+  "result": {
+    "job_id": "266362",
+    "script_path": "/hs/work0/home/users/william.dawson/agent/jobs/notebook-demo-20260804-154917.sh"
+  }
+}
