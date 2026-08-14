@@ -160,5 +160,18 @@
       },
       "category": "Education & Research"
     }
+    ,
+    {
+      "name": "nsight-profiling",
+      "source": {
+        "source": "local",
+        "path": "./nsight-profiling"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
   ]
 }

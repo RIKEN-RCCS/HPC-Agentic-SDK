@@ -37,6 +37,7 @@ Then open `/plugins` in Codex and install the plugins you need.
 | [BenchKit](./benchkit/) | Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems |
 | [Benchpark](./benchpark/) | Use and contribute to Benchpark, a Spack+Ramble-based framework for specifying reproducible HPC benchmarks across multiple systems |
 | [Hot Memory](./hot-memory/) | Measure per-kernel hot working sets, memory traffic, and FLOPs in MPI C/C++/Fortran codes for GPU memory planning |
+| [Nsight Profiling](./nsight-profiling/) | Profile GPU and MPI applications with NVIDIA Nsight Systems/Compute (nsys/ncu) on isolated HPC clusters — per-rank wrapper injection, replay control, Grid-Size fingerprinting, and latency-bound detection from the CLI |
 | [HeCBench Kernel Matching](./hecbench/) | Identify the HeCBench workloads most similar to application kernels by computational motif |
 
 ### RIKEN R-CCS facility agents

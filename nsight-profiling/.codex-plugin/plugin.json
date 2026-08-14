@@ -1,0 +1,22 @@
+{
+  "name": "nsight-profiling",
+  "version": "0.1.0",
+  "description": "Profile GPU and MPI applications with NVIDIA Nsight Systems/Compute (nsys/ncu) on isolated HPC clusters: per-rank wrapper injection, replay control, Grid-Size fingerprinting, and latency-bound detection from the CLI.",
+  "author": {
+    "name": "RIKEN-RCCS"
+  },
+  "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
+  "keywords": ["hpc", "gpu", "profiling", "nsys", "ncu", "nsight", "mpi", "cuda"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Nsight Profiling",
+    "shortDescription": "Profile GPU/MPI apps with nsys and ncu.",
+    "longDescription": "Practical patterns for profiling GPU and MPI applications with NVIDIA Nsight Systems and Compute (nsys/ncu) on externally-isolated HPC clusters: disabling debuginfod symbol resolution to avoid hangs, injecting per-rank nsys wrappers under mpiexec, controlling ncu kernel replay and collection windows, using Grid Size as a kernel fingerprint to classify sub-problems, judging latency-bound kernels via Long Scoreboard, and reading results from the CLI alone.",
+    "developerName": "RIKEN-RCCS",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Profile my GPU/MPI application with Nsight Systems and Compute."
+    ]
+  }
+}

@@ -127,5 +127,16 @@
         "path": "hecbench"
       }
     }
+    ,
+    {
+      "id": "nsight-profiling",
+      "name": "Nsight Profiling",
+      "description": "Profile GPU and MPI applications with NVIDIA Nsight Systems/Compute (nsys/ncu) on isolated HPC clusters: per-rank wrapper injection, replay control, Grid-Size fingerprinting, and latency-bound detection from the CLI",
+      "source": {
+        "source": "git-subdir",
+        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
+        "path": "nsight-profiling"
+      }
+    }
   ]
 }
