@@ -148,6 +148,15 @@ has build recipes for essentially every registered system). Full guide:
    built executable (and anything else `run.sh` genuinely needs) into
    `artifacts/`, not the whole source/build tree — that's what CI archives.
 
+   If the app needs input data files that live in the source tree you just
+   cloned, stage them into `artifacts/` too (e.g. `cp data/<file>
+   "${PWD}/../artifacts/<file>"`) rather than committing them under
+   `programs/<code>/`. Large inputs in the repo raise clone/fetch cost for
+   every pipeline; staging from the clone keeps the repo small and lets
+   `run.sh` read them on the compute node even in cross-build mode. Record
+   their upstream revision and SHA-256 checksums in a committed
+   `programs/<code>/data/README.md` for provenance.
+
 4. **`run.sh`** — receives `system nodes numproc_node nthreads` positionally.
    Pattern:
    ```sh
@@ -295,6 +304,12 @@ each stage assumes the previous one already works.
   `results/source_info.env` never gets written, which breaks the
   source-provenance tracking the portal's `/results/usage` view depends
   on.
+- **Don't commit large input data files under `programs/<code>/`.**
+  They raise clone/fetch cost for every pipeline, including unrelated
+  apps. If `bk_fetch_source` already clones the repo that ships the
+  inputs, stage them into `artifacts/` from that clone and have `run.sh`
+  read them from there; keep only metadata, provenance, URLs, and
+  checksums in the repo.
 - **A new system needs entries in *both* `system.csv` and
   `system_info.csv`** before any app's `list.csv` can reference it —
   `system_info.csv` isn't just cosmetic, `queue.csv` templates can
