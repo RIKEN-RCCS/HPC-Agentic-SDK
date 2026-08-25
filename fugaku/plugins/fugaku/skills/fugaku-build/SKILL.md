@@ -1,3 +1,8 @@
+---
+name: "fugaku-build"
+description: "Guide for building HPC applications on Fugaku (A64FX). Documents four verified compiler toolchains, the BLAS/LAPACK interoperability story, how to prove your build actually produces working parallel code, and common gotchas."
+---
+
 # Skill: fugaku-build
 
 Guide for building HPC applications on Fugaku (A64FX). Documents four verified compiler toolchains, the BLAS/LAPACK interoperability story, how to prove your build actually produces working parallel code, and common gotchas.

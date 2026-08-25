@@ -62,6 +62,50 @@ jobs:
             fugaku/plugins/fugaku/.claude-plugin/plugin.json \
             fugaku/plugins/fugaku/.codex-plugin/plugin.json
 
+      - name: Normalize and validate Codex skill metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          skills = sorted(Path(".").glob("*/plugins/*/skills/*/SKILL.md"))
+          if not skills:
+              raise SystemExit("no facility-agent skills found")
+
+          for skill in skills:
+              text = skill.read_text()
+              if not text.startswith("---\n"):
+                  paragraphs = re.split(r"\n\s*\n", text)
+                  description = next(
+                      (paragraph.replace("\n", " ").strip() for paragraph in paragraphs
+                       if paragraph.strip() and not paragraph.lstrip().startswith("#")),
+                      f"Guidance for the {skill.parent.name} workflow.",
+                  )
+                  frontmatter = (
+                      "---\n"
+                      f"name: {json.dumps(skill.parent.name)}\n"
+                      f"description: {json.dumps(description)}\n"
+                      "---\n\n"
+                  )
+                  skill.write_text(frontmatter + text)
+
+              match = re.match(r"\A---\n(.*?)\n---(?:\n|\Z)", skill.read_text(), re.DOTALL)
+              if match is None:
+                  raise SystemExit(f"invalid frontmatter delimiters: {skill}")
+              metadata = match.group(1).splitlines()
+              for field in ("name", "description"):
+                  values = [
+                      line.partition(":")[2].strip()
+                      for line in metadata
+                      if line.startswith(f"{field}:")
+                  ]
+                  if not values or not values[0]:
+                      raise SystemExit(f"missing {field}: {skill}")
+                  if re.search(r"\s#", values[0]) and not values[0].startswith(("'", '"')):
+                      raise SystemExit(f"unquoted YAML comment in {field}: {skill}")
+          PY
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
