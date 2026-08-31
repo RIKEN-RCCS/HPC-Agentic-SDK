@@ -1,6 +1,6 @@
 ---
 name: benchkit
-description: Guide for using and contributing to BenchKit (RIKEN-RCCS), a shell-first benchmarking framework that builds/runs HPC applications across multiple systems, collects results, and reports them to a portal. Use when adding a benchmark application to BenchKit, registering a new target system/site, running or testing a BenchKit benchmark locally, or understanding a `programs/<code>/{build.sh,run.sh,list.csv}` layout.
+description: Guide for using and contributing to BenchKit (RIKEN-RCCS), a shell-first HPC benchmarking framework. Use when adding a benchmark application, registering a target system/site, running or testing a benchmark, understanding `programs/<code>/{build.sh,run.sh,list.csv}`, or using the public FugakuNEXT/CX (FNCX) result portal.
 user-invocable: true
 ---
 
@@ -14,6 +14,13 @@ run. There is no heavy framework abstraction layer between you and the actual
 build/run commands — that's a deliberate design choice, not an accident.
 
 **Repository:** https://github.com/RIKEN-RCCS/benchkit
+
+**Public CX/FugakuNEXT portal:** https://fncx.r-ccs.riken.jp/
+
+The FNCX portal is the public, read-only surface for published CX benchmark
+data. It is useful for checking the public representation of a system or a
+result; it is not an authentication endpoint, runner-control plane, or a
+replacement for testing a job on its target site.
 
 Two things you'll do with it: **run/test a benchmark that already exists**,
 or **contribute a new application or a new target system**. This skill
@@ -142,10 +149,11 @@ has build recipes for essentially every registered system). Full guide:
 
    cp <built-executable> "${PWD}/../artifacts/<name>"
    ```
-   Always use `bk_fetch_source` rather than a raw `git clone` — it writes
-   `results/source_info.env` with the repo/branch/commit hash, which is the
-   provenance record the portal surfaces at `/results/usage`. Copy only the
-   built executable (and anything else `run.sh` genuinely needs) into
+   Prefer `bk_fetch_source` over a raw `git clone` — it records top-level
+   source provenance in `results/source_info.env` (repository, ref, and
+   resolved commit; or an archive digest). Pass its optional fourth argument
+   only when a reproducible build must pin the expected commit/SHA-256.
+   Copy only the built executable (and anything else `run.sh` genuinely needs) into
    `artifacts/`, not the whole source/build tree — that's what CI archives.
 
    If the app needs input data files that live in the source tree you just
@@ -202,7 +210,13 @@ has build recipes for essentially every registered system). Full guide:
 6. **Optional: profiler data.** `bk_profiler` (in `bk_functions.sh`) wraps
    `fapp` (Fugaku, `--level single|simple|standard|detailed`) or `ncu`
    (NVIDIA, `--level ... --archive ... --raw-dir ... -- <cmd>`) and produces
-   `results/padata<N>.tgz` archives BenchKit collects automatically.
+   `results/padata<N>.tgz` archives BenchKit collects automatically. The
+   public FNCX detail page can show profiler metadata (tool, level, event/run
+   count, report kinds) and expose an available PA archive. Keep the archive
+   useful and public-safe: do not package credentials, private input data, or
+   site-private logs. For GPU profiling, begin with a small collection level;
+   `ncu` binary reports are intentionally excluded by default because they
+   are large.
 
 7. **Test locally**, then via `scripts/test_submit.sh <code> <line_number>`
    (see above), then open a PR. **Commit message must include
@@ -273,7 +287,51 @@ all, 3) module load + build succeeds, 4) a run produces `results/result`,
 `scripts/result_server/send_results.sh` succeeds. Debug in that order —
 each stage assumes the previous one already works.
 
-## Estimation and the result portal (pointers, not depth)
+## FNCX public portal and result hygiene
+
+The public CX Portal at https://fncx.r-ccs.riken.jp/ is the practical
+post-CI inspection point for BenchKit data. At the current public baseline it
+provides:
+
+- **Results** (`/results/`): filter by code, experiment, and system; select
+  visible rows to compare; inspect timestamp, source ref/hash, FOM and unit,
+  FOM version, system, node/process/thread shape, profiler/PA availability,
+  and a per-result detail page.
+- **Result detail:** shows the emitted core metadata and, when available,
+  profiler summaries and quality signals. This is why a result should always
+  include an unambiguous unit, experiment label, scale fields, and a stable
+  FOM-version label when timing boundaries change.
+- **Systems** (`/systems`): publishes the `system_info.csv` view used for
+  onboarding and comparison: CPU/GPU model, counts per node, cores, and
+  memory. Treat `system_info.csv` as user-facing metadata, not an optional
+  afterthought.
+- **Changes** (`/changes`): public portal release notes. Check it if a portal
+  behavior or displayed field seems to have changed.
+
+Before merging an application or site change, run a portal-readiness check:
+
+1. Confirm `results/result` contains a real FOM, its unit, `Exp`, node count,
+   processes/node, threads/process, and a meaningful FOM version.
+2. Confirm `results/source_info.env` describes the top-level source whenever
+   the app fetches Git or archive inputs. Prefer dataset IDs/manifests and
+   digests over local paths in any accompanying metadata.
+3. Emit sections/overlaps only when their names and timing semantics are
+   stable enough to compare across runs; add profiler data only when its
+   archive is safe to publish and useful to diagnose the FOM.
+4. For a newly registered system, compare its public `/systems` card against
+   the actual allocation before enabling app rows. Correct CPU/GPU counts and
+   memory matter both to users and queue-template expansion.
+
+The portal only publishes its public-safe view. Never place tokens,
+passwords, private URLs, personally identifying home paths, private datasets,
+or unredacted site logs in `results/result`, source metadata, profiler
+archives, or committed app configuration. Use app-local environment-variable
+overrides for site-staged inputs, and record dataset identity plus a manifest
+or digest instead of a sensitive path. If a result is confidential, use the
+project's confidentiality mechanism and coordinate publication with the
+maintainers rather than assuming it belongs on FNCX.
+
+## Estimation (pointer, not depth)
 
 - **Estimation** (`docs/guides/add-estimation.md`) lets an app predict
   performance at scales/architectures you haven't directly measured, via
@@ -282,12 +340,11 @@ each stage assumes the previous one already works.
   *what* sections exist and how to measure them; the estimation-package
   side (which algorithm extrapolates each section) is a separate
   maintainer role, not something you write per-app.
-- **`result_server`** is the CX result portal — a separately-deployed Flask
-  service that CI pushes results *into* (via
-  `scripts/result_server/send_results.sh`); it's not something you run
-  yourself as part of a normal build/run/contribute workflow. Results and
-  estimates become browsable there automatically once `send_results.sh`
-  succeeds in CI.
+- **Result delivery** is handled by BenchKit CI and its separately deployed
+  result-server tooling (`scripts/result_server/send_results.sh`); application
+  contributors should emit correct artifacts and metadata, not operate the
+  public portal directly. A successful local run does not by itself publish a
+  result.
 
 ## Known gotchas
 
@@ -300,10 +357,10 @@ each stage assumes the previous one already works.
   the scheduler with a misleading exit code) without the launcher itself
   reporting failure. Grep the app's actual log for a real completion
   marker before emitting a result — see `run.sh`'s pattern above.
-- **`bk_fetch_source`, not raw `git clone`.** Skipping it means
-  `results/source_info.env` never gets written, which breaks the
-  source-provenance tracking the portal's `/results/usage` view depends
-  on.
+- **Prefer `bk_fetch_source` to raw `git clone`.** It creates normalized
+  top-level source provenance and supports explicit commit/archive-digest
+  pinning when reproducibility requires it. Do not claim provenance for
+  dependencies or local inputs that the app has not actually recorded.
 - **Don't commit large input data files under `programs/<code>/`.**
   They raise clone/fetch cost for every pipeline, including unrelated
   apps. If `bk_fetch_source` already clones the repo that ships the

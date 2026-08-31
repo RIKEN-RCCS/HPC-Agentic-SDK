@@ -1,20 +1,28 @@
 {
   "name": "benchkit",
-  "version": "0.1.0",
-  "description": "Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems.",
+  "version": "0.1.0+codex.20260831031428",
+  "description": "Use and contribute to BenchKit, including the public FugakuNEXT/CX (FNCX) benchmark portal.",
   "author": {
     "name": "RIKEN-RCCS"
   },
   "repository": "https://github.com/RIKEN-RCCS/HPC-Agentic-SDK",
-  "keywords": ["hpc", "benchmarking", "benchkit", "ci", "performance"],
+  "keywords": [
+    "hpc",
+    "benchmarking",
+    "benchkit",
+    "ci",
+    "performance"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "BenchKit",
-    "shortDescription": "Build, run, and contribute HPC benchmarks with BenchKit.",
-    "longDescription": "Guide for using and contributing to BenchKit: running an existing benchmark locally or via a real batch job, adding a new benchmark application (build.sh/run.sh/list.csv), and registering a new target system/site.",
+    "shortDescription": "Build, run, publish, and inspect BenchKit benchmarks.",
+    "longDescription": "Guide for using and contributing to BenchKit: run benchmarks locally or via batch jobs, add applications and target systems, and inspect public FugakuNEXT/CX (FNCX) results, profiler artifacts, and system metadata.",
     "developerName": "RIKEN-RCCS",
     "category": "Developer Tools",
-    "capabilities": ["Write"],
+    "capabilities": [
+      "Write"
+    ],
     "defaultPrompt": [
       "Help me add a new BenchKit application."
     ]
