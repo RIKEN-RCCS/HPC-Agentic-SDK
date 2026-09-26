@@ -165,6 +165,24 @@ has build recipes for essentially every registered system). Full guide:
    their upstream revision and SHA-256 checksums in a committed
    `programs/<code>/data/README.md` for provenance.
 
+   When the data does **not** ship with a clonable source tree (private
+   datasets, large restart files, pseudopotentials kept out of Git), stage
+   it at the per-site `CX_input` local-file location instead and copy into
+   `artifacts/` from there:
+
+   | system | `CX_input` path |
+   |---|---|
+   | RIKYU | `/data1/rkp00015/CX_input` |
+   | R-CCS Cloud | `/lvs0/rccs-nghpcadu/CX_input` |
+   | Fugaku | `/vol0500/share/ra250029/CX_input` |
+
+   These are the CX project-space staging directories for this deployment;
+   create the directory on a site if it does not exist yet. Reference the
+   files through an environment-variable override so the committed recipe
+   stays site-neutral (see result hygiene below), and record the dataset
+   identity (name, revision, SHA-256) in `programs/<code>/data/README.md`
+   as above.
+
 4. **`run.sh`** — receives `system nodes numproc_node nthreads` positionally.
    Pattern:
    ```sh
@@ -326,7 +344,9 @@ The portal only publishes its public-safe view. Never place tokens,
 passwords, private URLs, personally identifying home paths, private datasets,
 or unredacted site logs in `results/result`, source metadata, profiler
 archives, or committed app configuration. Use app-local environment-variable
-overrides for site-staged inputs, and record dataset identity plus a manifest
+overrides for site-staged inputs (staged under the per-site `CX_input`
+directories listed in *Contributing a new application*), and record dataset
+identity plus a manifest
 or digest instead of a sensitive path. If a result is confidential, use the
 project's confidentiality mechanism and coordinate publication with the
 maintainers rather than assuming it belongs on FNCX.
