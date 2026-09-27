@@ -94,6 +94,22 @@ Fugaku-family systems, PBS on Miyabi-family, SLURM on R-CCS Cloud/RIKYU/etc.
 is the build-only equivalent, and `scripts/test_estimate_submit.sh` tests
 the estimation pipeline the same way.
 
+**Hand-rolled submissions must replicate the queue template.** If you
+bypass `test_submit.sh` (agent wrappers, one-off validation jobs), the
+`config/queue.csv` template is not applied for you — a recipe's `run.sh`
+only assumes the allocation it declares there. The FJ template, for
+example, carries `--mpi max-proc-per-node=${numproc_node}` and
+`-x PJM_LLIO_GFSCACHE=/vol0002:/vol0003:/vol0004:/vol0005`; a hand-submitted
+PJM job without them fails `mpiexec -n N` with PLE 0005 ("specified number
+of processes is too many") and cannot read second-layer storage
+respectively. Two more earned the same way (2026-09, petsc-gmres
+validation): the `f-pt` resource group drains small validation jobs quickly,
+and on RIKYU an Open MPI run dies in `hwloc_set_cpubind` unless the Slurm
+job allocates the node's full core count — a partial cpuset is not enough.
+On Fugaku, `pjstat` never reports the application's exit status; read
+`<jobname>.<jobid>.out/.err` to learn whether the run actually succeeded.
+
+
 **Generating the CI pipeline** (rarely needed by hand — CI runs this
 itself, but useful to preview what a `list.csv` change will actually
 schedule):
