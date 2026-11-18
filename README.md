@@ -35,14 +35,13 @@ The Fugaku plugin is an unofficial community port. For the MCP server maintained
 
 ### Claude Code
 
-Inside Claude Code, add the marketplace and install the plugins you want. For example:
+Inside Claude Code, add the marketplace.
 
 ```text
 /plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
-/plugin install RAPTOR
-/plugin install hpc@hpc-agentic-sdk
-/plugin install hpc-rikyu@hpc-agentic-sdk
 ```
+
+Open `/plugin` and use the **Discover** tab to browse and install the plugins you want.
 
 ### Codex
 
