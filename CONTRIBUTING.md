@@ -114,4 +114,8 @@ Add an entry to `.claude-plugin/marketplace.json`:
 }
 ```
 
-And add a row to the table in `README.md`.
+Register the same plugin in `.agents/plugins/marketplace.json` and add a row
+in `README.md`. Pi and OpenCode use the Codex marketplace paths and each
+plugin's `.codex-plugin/plugin.json` to find its skills and MCP servers.
+Put stdio launch commands in the plugin's `.mcp.json` so all clients can use
+the same configuration.

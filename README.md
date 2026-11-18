@@ -1,83 +1,108 @@
-# Agentic SDK for High Performance Computing
+# HPC Agentic SDK
 
-A market place of claude code skills and MCP servers useful for HPC development
-using agentic tools.
+HPC Agentic SDK is a collection of skills and MCP servers for developing, benchmarking, and tuning high-performance computing software with Claude Code, Codex, OpenCode, and Pi. Install the tools you need for your code and the facility plugins for the machines you use.
+
+## Available plugins
+
+### Development and performance
+
+| Plugin | What it does |
+| --- | --- |
+| [RAPTOR](./raptor/) | Profile and tune floating-point precision in C, C++, and Fortran |
+| [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
+| [make-vibe](./make-vibe/) | Run Makefile targets locally or on a remote HPC system through MCP |
+| [OpenACC](./openacc/) | Add OpenACC directives to Fortran using verified templates |
+| [BenchKit](./benchkit/) | Build and run HPC benchmarks with BenchKit |
+| [Benchpark](./benchpark/) | Define reproducible HPC benchmarks with Spack and Ramble |
+| [Hot Memory](./hot-memory/) | Measure per-kernel working sets, memory traffic, and FLOPs in MPI applications |
+| [Nsight Profiling](./nsight-profiling/) | Profile GPU and MPI applications with NVIDIA Nsight Systems and Compute |
+| [HeCBench Kernel Matching](./hecbench/) | Find representative HeCBench kernels by computational motif |
+| [Bootstrap](./bootstrap/) | Set up a Claude Code project with HPC skills and workflow instructions |
+
+### Facility plugins
+
+Each facility plugin provides skills and MCP tools for submitting and monitoring jobs, managing files, and searching the facility guide.
+
+| Plugin | Facility | Scheduler |
+| --- | --- | --- |
+| [`fugaku`](./fugaku/) | Fugaku | PJM |
+| [`hokusai`](./hokusai/) | HOKUSAI BigWaterfall2 | Slurm |
+| [`rccs-cloud`](./r-ccs-cloud/) | R-CCS Cloud | Slurm |
+| [`rikyu`](./rikyu/) | RIKYU, the RIKEN AI4S GB200 system | Slurm |
+
+The Fugaku plugin is an unofficial community port. For the MCP server maintained by the Fugaku operations team, see [RIKEN-RCCS/fugaku-mcp](https://github.com/RIKEN-RCCS/fugaku-mcp).
 
 ## Install
 
-In Claude Code:
+### Claude Code
 
-```
+Inside Claude Code, add the marketplace and install the plugins you want. For example:
+
+```text
 /plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
-/plugin install RAPTOR 
+/plugin install RAPTOR
+/plugin install rikyu
 ```
-
-This installs all plugins needed for HPC code tuning workflows.
 
 ### Codex
 
-Codex can install plugins from this repository through the plugin marketplace:
+Add the marketplace from your terminal:
 
-```bash
+```sh
 codex plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
 ```
 
-Then open `/plugins` in Codex and install the plugins you need.
+Open `/plugins` in Codex and choose the plugins you want.
 
-## Plugins
+### OpenCode and Pi
 
-### Optimization tools
+Install the Git package for your client.
 
-| Plugin | Description |
-|--------|-------------|
-| [RAPTOR](./raptor/) | Profile and alter floating-point precision in C, C++, and Fortran using RAPTOR |
-| [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
-| [make-vibe](./make-vibe/) | Expose Makefile targets as MCP tools for building and running code on local or remote HPC systems |
-| [OpenACC](./openacc/) | Automatically insert OpenACC directives into Fortran code using a verified template library for reliable GPU parallelization |
-| [BenchKit](./benchkit/) | Use and contribute to BenchKit, a shell-first framework for building and running HPC benchmarks across multiple systems |
-| [Benchpark](./benchpark/) | Use and contribute to Benchpark, a Spack+Ramble-based framework for specifying reproducible HPC benchmarks across multiple systems |
-| [Hot Memory](./hot-memory/) | Measure per-kernel hot working sets, memory traffic, and FLOPs in MPI C/C++/Fortran codes for GPU memory planning |
-| [Nsight Profiling](./nsight-profiling/) | Profile GPU and MPI applications with NVIDIA Nsight Systems/Compute (nsys/ncu) on isolated HPC clusters — per-rank wrapper injection, replay control, Grid-Size fingerprinting, and latency-bound detection from the CLI |
-| [HeCBench Kernel Matching](./hecbench/) | Identify the HeCBench workloads most similar to application kernels by computational motif |
+**OpenCode 2.3 or newer**
 
-### RIKEN R-CCS facility agents
-
-Full cluster agents for job submission, monitoring, and filesystem operations via the [IRI Facility API](https://api.alcf.anl.gov/). Install one if you work on the corresponding machine.
-
-| Plugin | Machine | Description |
-|--------|---------|-------------|
-| [hokusai](./hokusai/) | HOKUSAI BigWaterfall2 (HBW2, x86_64) | Submit and monitor Slurm jobs, manage files, search the HBW2 User's Guide |
-| [rikyu](./rikyu/) | AI4S (NVIDIA GB200, aarch64) | Submit and monitor Slurm jobs, manage files, search the AI4S documentation |
-| [rccs-cloud](./r-ccs-cloud/) | R-CCS Cloud (~20 partitions: A64FX, x86_64, NVIDIA/AMD/Intel GPUs) | Submit and monitor Slurm jobs, manage files, search the built-in documentation |
-| [fugaku](./fugaku/) | Fugaku (A64FX, aarch64) | Submit and monitor PJM (pjsub/pjstat/pjdel) jobs, manage files, search the built-in documentation |
-
-> **fugaku is an unofficial community port.** The official Fugaku MCP
-> server, built and maintained by the Fugaku operations team, is
-> [RIKEN-RCCS/fugaku-mcp](https://github.com/RIKEN-RCCS/fugaku-mcp) — prefer
-> that where it covers what you need. This plugin (built on the shared
-> `hpc-agent-core` framework other agents here also use) is not a
-> replacement or competing effort; see its own
-> [README](./fugaku/README.md) for more.
-
-```
-/plugin install hokusai
-/plugin install rikyu
-/plugin install rccs-cloud
+```sh
+opencode plugin add 'github:RIKEN-RCCS/HPC-Agentic-SDK#main'
 ```
 
-## Overnight agent
+**Pi 1.5.2 or newer with built-in MCP enabled**
 
-[claude_fairy](https://pypi.org/project/claude-fairy/) runs Claude Code headlessly on a schedule — waking at 1am, working through your `PLAN.md`, and writing a report by morning. The plugins above are its toolbox for HPC work.
+```sh
+pi install git:github.com/RIKEN-RCCS/HPC-Agentic-SDK@main
+```
 
-```bash
-# Install the plugins first
-/plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
-/plugin install make-vibe
-/plugin install rccs-cloud
+Start a session and run `/hpc-sdk` to see the available plugins. Set your selection by name:
 
-# Then initialize and start the fairy in your project
+```text
+/hpc-sdk set raptor,make-vibe,rikyu
+```
+
+Your client saves the selection for later sessions. Run `/hpc-sdk set` with the full list whenever you want to change it, or `/hpc-sdk clear` to unload the SDK plugins.
+
+### Other MCP clients
+
+Open [this repository](https://github.com/RIKEN-RCCS/HPC-Agentic-SDK) in your AI client, or clone it and open the checkout. Then ask your agent:
+
+> Install all the skills and MCP servers from this repository that my client supports.
+
+The agent can use the [marketplace catalog](./.agents/plugins/marketplace.json) to find each plugin, then register its `skills/` directory and any stdio servers in `.mcp.json` using the client’s native configuration. After installation, follow [Configure](#configure) for the HPC systems you use.
+
+## Configure
+
+Facility plugins require [`uv`](https://docs.astral.sh/uv/) and access to the corresponding system. Follow the facility README to configure SSH and any credentials needed for documentation search. Facility settings live under `~/.hpc-agent/`.
+
+Once configured, try a read-only request such as “Show me which queues are available on RIKYU.”
+
+The make-vibe MCP server uses `uvx`. The Tadashi MCP server requires Docker.
+
+## Overnight workflows
+
+[claude_fairy](https://pypi.org/project/claude-fairy/) runs Claude Code on a schedule and works through tasks in `PLAN.md`. Install the SDK plugins your project needs, then initialize the scheduler from your project directory:
+
+```sh
 uvx --from claude-fairy cfairy init
 uvx --from claude-fairy cfairy daemon
 ```
 
-Edit `PLAN.md` with your tasks. The fairy will use the installed plugins each night to build, run, and optimize on the cluster.
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the plugin layout and marketplace registration.

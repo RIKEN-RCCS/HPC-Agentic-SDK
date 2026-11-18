@@ -1,0 +1,17 @@
+{
+  "name": "hpc-agentic-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HPC skills and MCP servers for coding agents",
+  "type": "module",
+  "exports": {
+    ".": "./clients/opencode.js"
+  },
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./clients/pi.js"]
+  },
+  "dependencies": {
+    "yaml": "2.9.0"
+  }
+}
