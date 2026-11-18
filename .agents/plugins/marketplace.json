@@ -29,18 +29,6 @@
       "category": "Developer Tools"
     },
     {
-      "name": "make-vibe",
-      "source": {
-        "source": "local",
-        "path": "./make-vibe"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Developer Tools"
-    },
-    {
       "name": "rccs-cloud",
       "source": {
         "source": "local",

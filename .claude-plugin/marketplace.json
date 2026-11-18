@@ -28,17 +28,6 @@
     }
     ,
     {
-      "id": "make-vibe",
-      "name": "make-vibe",
-      "description": "Expose Makefile targets as MCP tools for building and running code on local or remote HPC systems via SLURM",
-      "source": {
-        "source": "git-subdir",
-        "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
-        "path": "make-vibe"
-      }
-    }
-    ,
-    {
       "name": "rccs-cloud",
       "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN R-CCS Cloud (heterogeneous: A64FX, x86_64, NVIDIA/AMD/Intel GPUs)",
       "source": "./r-ccs-cloud/plugins/rccs-cloud"

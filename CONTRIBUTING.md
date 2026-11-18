@@ -32,7 +32,7 @@ user-invocable: true
 
 Just a `SKILL.md`. No server, no installation required. Use this for reference information, workflow guidance, or tool documentation.
 
-Example: [r-ccs-cloud](./r-ccs-cloud/) and [raptor](./raptor/)
+Example: [RAPTOR](./raptor/)
 
 ```
 my-plugin/
@@ -72,8 +72,6 @@ Push your image to Docker Hub before registering the plugin.
 ### 3. MCP server via uvx (PyPI)
 
 Use this when your tool is a pure Python package. `uvx` pulls it from PyPI into an isolated environment on first use — no Docker required.
-
-Example: [make-vibe](./make-vibe/)
 
 ```
 my-plugin/

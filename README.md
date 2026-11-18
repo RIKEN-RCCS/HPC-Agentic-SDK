@@ -10,7 +10,6 @@ HPC Agentic SDK is a collection of skills and MCP servers for developing, benchm
 | --- | --- |
 | [RAPTOR](./raptor/) | Profile and tune floating-point precision in C, C++, and Fortran |
 | [Tadashi](./tadashi/) | Check whether loop transformations are mathematically safe using polyhedral analysis |
-| [make-vibe](./make-vibe/) | Run Makefile targets locally or on a remote HPC system through MCP |
 | [OpenACC](./openacc/) | Add OpenACC directives to Fortran using verified templates |
 | [BenchKit](./benchkit/) | Build and run HPC benchmarks with BenchKit |
 | [Benchpark](./benchpark/) | Define reproducible HPC benchmarks with Spack and Ramble |
@@ -73,7 +72,7 @@ pi install git:github.com/RIKEN-RCCS/HPC-Agentic-SDK@main
 Start a session and run `/hpc-sdk` to see the available plugins. Set your selection by name:
 
 ```text
-/hpc-sdk set raptor,make-vibe,rikyu
+/hpc-sdk set raptor,rikyu
 ```
 
 Your client saves the selection for later sessions. Run `/hpc-sdk set` with the full list whenever you want to change it, or `/hpc-sdk clear` to unload the SDK plugins.
@@ -92,7 +91,7 @@ Facility plugins require [`uv`](https://docs.astral.sh/uv/) and access to the co
 
 Once configured, try a read-only request such as “Show me which queues are available on RIKYU.”
 
-The make-vibe MCP server uses `uvx`. The Tadashi MCP server requires Docker.
+The Tadashi MCP server requires Docker.
 
 ## Overnight workflows
 
