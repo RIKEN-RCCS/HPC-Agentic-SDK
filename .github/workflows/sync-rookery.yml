@@ -1,0 +1,60 @@
+name: Sync HPC Rookery
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-rookery
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Refresh the filtered bundle
+        run: |
+          git clone --depth=1 https://github.com/william-dawson/hpc-rookery.git "$RUNNER_TEMP/rookery-upstream"
+          python3 scripts/sync-rookery.py "$RUNNER_TEMP/rookery-upstream"
+
+      - name: Verify the bundled servers
+        run: |
+          pipx install uv
+          uv run --isolated --no-project --with ./rookery -- python scripts/check-rookery.py
+
+      - name: Open a pull request for the update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git add rookery/
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          revision=$(jq -r .revision rookery/UPSTREAM.json)
+          branch="sync/rookery-$revision"
+          if [ "$(gh pr list --state all --head "$branch" --json number --jq length)" != 0 ]; then
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          gh auth setup-git
+          if [ -z "$(git ls-remote --heads origin "$branch")" ]; then
+            git commit -m "Sync HPC Rookery to $revision"
+            git push origin "HEAD:refs/heads/$branch"
+          fi
+          gh pr create --base "$BASE_BRANCH" --head "$branch" \
+            --title "Sync HPC Rookery to ${revision:0:12}" \
+            --body "Import the filtered Rookery bundle from https://github.com/william-dawson/hpc-rookery/commit/$revision. Both packaged MCP servers passed the offline smoke test."

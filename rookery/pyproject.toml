@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hpc-rookery"
+version = "0.1.0"
+description = "Unified multi-facility MCP server for the HPC agent family: one process, every onboarded supercomputer reachable through one generic, facility-parametrized tool surface."
+readme = "README.md"
+license = "AGPL-3.0-or-later"   # SPDX expression; the TOML-table and
+license-files = ["LICENSE"]     # classifier forms are deprecated from 2027-02
+requires-python = ">=3.10"
+dependencies = [
+    # mcp 2.0.0 (2026-07-17) renamed mcp.server.fastmcp.FastMCP to
+    # mcp.server.mcpserver.MCPServer with no deprecation window. Pinned
+    # exactly, not to a range — bump deliberately, after testing, not by
+    # widening a ceiling. hpc_agent_core/mcp_server.py is the only file that
+    # imports it directly.
+    "mcp==2.0.0",
+    # remotemanager is the whole transport layer: every cluster call in
+    # middleware.py goes through a remotemanager Computer, so a change in
+    # how it opens connections, quotes payloads or reports failures changes
+    # every tool on every facility at once. Same reasoning as mcp above, and
+    # it matters more here because the documented install is
+    # `uv tool run --from git+...@main`, which resolves dependencies fresh
+    # every time there is no cached tool environment — an unpinned transport
+    # means a user's first call can behave differently from ours. 0.14.3 is
+    # what all ten facilities have been verified against. Bump deliberately,
+    # after re-running conformance and a live smoke test.
+    "remotemanager==0.14.3",
+    "httpx",
+    "numpy",
+    "pydantic",
+]
+
+[project.scripts]
+hpc-mcp = "hpc_mcp.hpc_server:main"
+hpc-docs-mcp = "hpc_mcp.docs_server:main"
+hpc-doctor = "hpc_mcp.doctor:main"
+
+[project.urls]
+Repository = "https://github.com/william-dawson/hpc-rookery"
+
+[tool.setuptools.packages.find]
+include = ["hpc_agent_core*", "hpc_mcp*", "facilities*"]
+
+# Each facility's data/ is read at runtime via Path(__file__).parent/"data"
+# (config.register_facility(data_dir=...)), so it MUST ship in the wheel —
+# without this the documented `uv tool run --from git+...` install produces
+# a server where get_facility and search_docs fail on every facility, while
+# a local editable install looks perfectly fine. Verified by inspecting a
+# real built wheel; tests/conformance.py asserts the globs still match.
+[tool.setuptools.package-data]
+"*" = [
+    "data/*.md",
+    "data/*.json",
+    "data/docs_index/*",
+    "facility.json",
+]

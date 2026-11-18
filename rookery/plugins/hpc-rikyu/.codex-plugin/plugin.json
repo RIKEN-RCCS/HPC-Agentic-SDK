@@ -1,0 +1,30 @@
+{
+  "name": "hpc-rikyu",
+  "version": "0.1.1",
+  "description": "Facility-specific HPC workflow skills for RIKYU (RIKEN AI4S / GB200). Install the hpc base plugin first for MCP tools.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "rikyu",
+    "slurm"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "HPC \u2014 RIKYU (RIKEN AI4S / GB200)",
+    "shortDescription": "Workflow skills for RIKYU (RIKEN AI4S / GB200).",
+    "longDescription": "Adds only the configuration, reference, submission, monitoring, demo, and reproducibility skills for RIKYU (RIKEN AI4S / GB200). Requires the hpc base plugin for its MCP servers.",
+    "developerName": "William Dawson",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Show me how to configure access to RIKYU (RIKEN AI4S / GB200).",
+      "Help me submit a job on RIKYU (RIKEN AI4S / GB200)."
+    ]
+  }
+}

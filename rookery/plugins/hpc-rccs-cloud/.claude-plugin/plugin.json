@@ -1,0 +1,15 @@
+{
+  "name": "hpc-rccs-cloud",
+  "description": "Facility-specific HPC workflow skills for R-CCS Cloud. Install the hpc base plugin first for MCP tools.",
+  "version": "0.1.0",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "rccs-cloud",
+    "slurm"
+  ]
+}

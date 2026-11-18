@@ -1,0 +1,30 @@
+{
+  "name": "hpc-fugaku",
+  "version": "0.1.1",
+  "description": "Facility-specific HPC workflow skills for Fugaku. Install the hpc base plugin first for MCP tools.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "fugaku",
+    "pjm"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "HPC \u2014 Fugaku",
+    "shortDescription": "Workflow skills for Fugaku.",
+    "longDescription": "Adds only the configuration, reference, submission, monitoring, demo, and reproducibility skills for Fugaku. Requires the hpc base plugin for its MCP servers.",
+    "developerName": "William Dawson",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Show me how to configure access to Fugaku.",
+      "Help me submit a job on Fugaku."
+    ]
+  }
+}

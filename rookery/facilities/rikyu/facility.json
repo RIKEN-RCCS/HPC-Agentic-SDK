@@ -1,0 +1,7 @@
+{
+  "slug": "rikyu",
+  "display_name": "RIKYU (RIKEN AI4S / GB200)",
+  "description": "RIKEN AI4S GB200 GPU cluster, Slurm with accounting, job-total GPU request.",
+  "scheduler": "slurm",
+  "live_validated": true
+}

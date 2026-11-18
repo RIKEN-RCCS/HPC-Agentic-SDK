@@ -28,11 +28,30 @@
     }
     ,
     {
-      "name": "rccs-cloud",
-      "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN R-CCS Cloud (heterogeneous: A64FX, x86_64, NVIDIA/AMD/Intel GPUs)",
-      "source": "./r-ccs-cloud/plugins/rccs-cloud"
-    }
-    ,
+      "name": "hpc",
+      "description": "Shared HPC Rookery servers and facility discovery",
+      "source": "./rookery/plugins/hpc"
+    },
+    {
+      "name": "hpc-fugaku",
+      "description": "HPC Rookery skills for Fugaku",
+      "source": "./rookery/plugins/hpc-fugaku"
+    },
+    {
+      "name": "hpc-hokusai",
+      "description": "HPC Rookery skills for HOKUSAI BigWaterfall2",
+      "source": "./rookery/plugins/hpc-hokusai"
+    },
+    {
+      "name": "hpc-rccs-cloud",
+      "description": "HPC Rookery skills for R-CCS Cloud",
+      "source": "./rookery/plugins/hpc-rccs-cloud"
+    },
+    {
+      "name": "hpc-rikyu",
+      "description": "HPC Rookery skills for RIKYU",
+      "source": "./rookery/plugins/hpc-rikyu"
+    },
     {
       "id": "openacc",
       "name": "OpenACC",
@@ -53,24 +72,6 @@
         "url": "git@github.com:RIKEN-RCCS/HPC-Agentic-SDK.git",
         "path": "bootstrap"
       }
-    }
-    ,
-    {
-      "name": "hokusai",
-      "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN HOKUSAI BigWaterfall2 (HBW2) supercomputer",
-      "source": "./hokusai/plugins/hokusai"
-    }
-    ,
-    {
-      "name": "rikyu",
-      "description": "Slurm job management, filesystem operations, and documentation search for the RIKEN AI4S supercomputer (NVIDIA GB200, aarch64)",
-      "source": "./rikyu/plugins/rikyu"
-    }
-    ,
-    {
-      "name": "fugaku",
-      "description": "PJM (pjsub/pjstat/pjdel) job management, filesystem operations, and documentation search for the RIKEN Fugaku supercomputer",
-      "source": "./fugaku/plugins/fugaku"
     }
     ,
     {

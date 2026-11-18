@@ -69,10 +69,10 @@ Based on answers, recommend which HPC-Agentic-SDK skills are needed:
 | Performance tuning | RAPTOR | Tadashi |
 | Loop optimization | Tadashi | RAPTOR |
 | Precision reduction | RAPTOR | — |
-| R-CCS Cloud execution | rccs-cloud | — |
+| R-CCS Cloud execution | hpc, hpc-rccs-cloud | — |
 
 **Decision point:**
-- For **R-CCS Cloud**, use the `rccs-cloud` plugin for cluster access and job submission.
+- For **R-CCS Cloud**, use the shared `hpc` plugin and the `hpc-rccs-cloud` skill pack. Pass `facility="rccs-cloud"` on facility-scoped calls.
 - For **localhost**, use the project's local build and test commands.
 - Optimization skills (RAPTOR, Tadashi, OpenACC) depend on the work, not the system
 
@@ -94,7 +94,7 @@ For each skill in the list:
 
 2. **Test immediately:**
    - For pure skills (RAPTOR, OpenACC): Ask user to view the skill and confirm it loaded
-   - For plugins with MCP servers (Tadashi, rccs-cloud):
+   - For plugins with MCP servers (Tadashi, hpc):
      - Ask user to restart Claude Code or reconnect to the MCP servers
      - Test a simple invocation to confirm MCP tools appear
 
@@ -134,12 +134,12 @@ The following HPC-Agentic-SDK skills and MCP servers are installed and verified:
 
 **Skills:**
 - [x] RAPTOR — Profile and optimize floating-point precision
-- [x] rccs-cloud — R-CCS Cloud job submission and monitoring skills
+- [x] hpc-rccs-cloud — R-CCS Cloud job submission and monitoring skills
 - [ ] Tadashi (skill) — Validate loop parallelization
 - [ ] OpenACC (skill) — Insert GPU directives
 
 **MCP Servers:**
-- [x] rccs-cloud-hpc — Submit and monitor jobs on R-CCS Cloud
+- [x] hpc — Submit and monitor jobs with `facility="rccs-cloud"`
 
 ## Mandatory Workflows
 

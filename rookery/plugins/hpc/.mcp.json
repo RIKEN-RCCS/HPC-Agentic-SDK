@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "hpc": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/HPC-Agentic-SDK.git@main#subdirectory=rookery",
+        "hpc-mcp"
+      ],
+      "env": {}
+    },
+    "hpc-docs": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/HPC-Agentic-SDK.git@main#subdirectory=rookery",
+        "hpc-docs-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

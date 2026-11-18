@@ -1,0 +1,16 @@
+{
+  "name": "hpc",
+  "description": "Shared HPC MCP servers and facility discovery. Install only the facility skill packs you use.",
+  "version": "0.2.0",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "slurm",
+    "supercomputer",
+    "multi-facility"
+  ]
+}

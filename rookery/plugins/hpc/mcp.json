@@ -1,0 +1,31 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "hpc": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/HPC-Agentic-SDK.git@main#subdirectory=rookery",
+        "hpc-mcp"
+      ],
+      "env": {}
+    },
+    "hpc-docs": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "--quiet",
+        "--from",
+        "git+https://github.com/RIKEN-RCCS/HPC-Agentic-SDK.git@main#subdirectory=rookery",
+        "hpc-docs-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

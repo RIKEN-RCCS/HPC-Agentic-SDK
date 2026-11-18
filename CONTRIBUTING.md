@@ -117,3 +117,21 @@ in `README.md`. Pi and OpenCode use the Codex marketplace paths and each
 plugin's `.codex-plugin/plugin.json` to find its skills and MCP servers.
 Put stdio launch commands in the plugin's `.mcp.json` so all clients can use
 the same configuration.
+
+## Updating HPC Rookery
+
+`rookery/` is a generated, filtered snapshot of upstream HPC Rookery.
+The weekly sync opens a pull request after checking that the packaged MCP
+servers work with the selected facilities. The upstream commit is recorded
+in [rookery/UPSTREAM.json](./rookery/UPSTREAM.json).
+
+To refresh and test the snapshot from an upstream checkout:
+
+```sh
+python3 scripts/sync-rookery.py /path/to/hpc-rookery
+uv run --isolated --no-project --with ./rookery -- python scripts/check-rookery.py
+```
+
+Make changes to Rookery's code or skills upstream. To change the facilities
+distributed by the SDK, update the allowlist in `scripts/sync-rookery.py`
+and the two marketplace catalogs.

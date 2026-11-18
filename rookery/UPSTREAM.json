@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "revision": "c7eacf0e1dde4901c59a5fe795b6381a69736325",
+  "facilities": [
+    "fugaku",
+    "hokusai",
+    "rccs-cloud",
+    "rikyu"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "slug": "hokusai",
+  "display_name": "HOKUSAI BigWaterfall2 (HBW2)",
+  "description": "CPU-first Slurm cluster (312-node MPC, large-memory, H100 GPU subsystems); a project account is mandatory on every job.",
+  "scheduler": "slurm",
+  "live_validated": true
+}

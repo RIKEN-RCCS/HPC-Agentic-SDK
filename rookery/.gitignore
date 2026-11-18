@@ -1,0 +1,17 @@
+*.egg-info/
+*.pyc
+.claude/
+.pytest_cache/
+.venv/
+__pycache__/
+opencode/node_modules/
+# Anchored to the repo root on purpose. Unanchored, "build/" matches a
+# directory of that name at any depth, which silently swallowed
+# facilities/fugaku/skills/build/ — a facility may legitimately name a
+# custom skill "build", and a new file added there would never be staged.
+# The patterns below only ever describe root-level build output.
+/build/
+/dist/
+/dist_check/
+remotemanager.log
+uv.lock

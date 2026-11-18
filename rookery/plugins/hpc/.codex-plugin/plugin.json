@@ -1,0 +1,34 @@
+{
+  "name": "hpc",
+  "version": "0.2.0",
+  "description": "Shared HPC MCP servers and facility discovery. Install only the facility skill packs you use.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "slurm",
+    "supercomputer",
+    "multi-facility"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "HPC",
+    "shortDescription": "Shared HPC MCP servers and facility discovery.",
+    "longDescription": "Adds shared HPC MCP servers and discovery. Install an hpc-<facility> skill pack only for a facility you choose to use.",
+    "developerName": "William Dawson",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "List the available HPC facilities.",
+      "Which facility skill pack should I install?",
+      "Show me how to configure access to RIKYU."
+    ]
+  }
+}

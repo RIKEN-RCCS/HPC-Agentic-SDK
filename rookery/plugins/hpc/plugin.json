@@ -1,0 +1,17 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hpc",
+  "version": "0.2.0",
+  "description": "Shared HPC MCP servers and facility discovery. Install only the facility skill packs you use.",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "slurm",
+    "supercomputer",
+    "multi-facility"
+  ]
+}

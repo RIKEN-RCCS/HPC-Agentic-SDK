@@ -1,0 +1,15 @@
+{
+  "name": "hpc-hokusai",
+  "description": "Facility-specific HPC workflow skills for HOKUSAI BigWaterfall2 (HBW2). Install the hpc base plugin first for MCP tools.",
+  "version": "0.1.0",
+  "author": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "repository": "https://github.com/william-dawson/hpc-rookery",
+  "keywords": [
+    "hpc",
+    "hokusai",
+    "slurm"
+  ]
+}

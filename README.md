@@ -20,14 +20,14 @@ HPC Agentic SDK is a collection of skills and MCP servers for developing, benchm
 
 ### Facility plugins
 
-Each facility plugin provides skills and MCP tools for submitting and monitoring jobs, managing files, and searching the facility guide.
+The SDK bundles a filtered distribution of [HPC Rookery](https://github.com/william-dawson/hpc-rookery). The shared `hpc` plugin starts one MCP server for cluster operations and one for documentation. The facility packs add workflows for the machines you use.
 
 | Plugin | Facility | Scheduler |
 | --- | --- | --- |
-| [`fugaku`](./fugaku/) | Fugaku | PJM |
-| [`hokusai`](./hokusai/) | HOKUSAI BigWaterfall2 | Slurm |
-| [`rccs-cloud`](./r-ccs-cloud/) | R-CCS Cloud | Slurm |
-| [`rikyu`](./rikyu/) | RIKYU, the RIKEN AI4S GB200 system | Slurm |
+| [`hpc-fugaku`](./rookery/plugins/hpc-fugaku/) | Fugaku | PJM |
+| [`hpc-hokusai`](./rookery/plugins/hpc-hokusai/) | HOKUSAI BigWaterfall2 | Slurm |
+| [`hpc-rccs-cloud`](./rookery/plugins/hpc-rccs-cloud/) | R-CCS Cloud | Slurm |
+| [`hpc-rikyu`](./rookery/plugins/hpc-rikyu/) | RIKYU, the RIKEN AI4S GB200 system | Slurm |
 
 The Fugaku plugin is an unofficial community port. For the MCP server maintained by the Fugaku operations team, see [RIKEN-RCCS/fugaku-mcp](https://github.com/RIKEN-RCCS/fugaku-mcp).
 
@@ -40,7 +40,8 @@ Inside Claude Code, add the marketplace and install the plugins you want. For ex
 ```text
 /plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
 /plugin install RAPTOR
-/plugin install rikyu
+/plugin install hpc@hpc-agentic-sdk
+/plugin install hpc-rikyu@hpc-agentic-sdk
 ```
 
 ### Codex
@@ -51,7 +52,7 @@ Add the marketplace from your terminal:
 codex plugin marketplace add RIKEN-RCCS/HPC-Agentic-SDK
 ```
 
-Open `/plugins` in Codex and choose the plugins you want.
+Open `/plugins` in Codex and choose the plugins you want. For facility access, install `hpc` and the skill packs for your machines.
 
 ### OpenCode and Pi
 
@@ -69,13 +70,13 @@ opencode plugin add 'github:RIKEN-RCCS/HPC-Agentic-SDK#main'
 pi install git:github.com/RIKEN-RCCS/HPC-Agentic-SDK@main
 ```
 
-Start a session and run `/hpc-sdk` to see the available plugins. Set your selection by name:
+Rookery's shared servers and facility discovery skill load with the SDK. Start a session and run `/hpc-sdk` to see the optional plugins. Set your selection by name:
 
 ```text
-/hpc-sdk set raptor,rikyu
+/hpc-sdk set raptor,hpc-rikyu
 ```
 
-Your client saves the selection for later sessions. Run `/hpc-sdk set` with the full list whenever you want to change it, or `/hpc-sdk clear` to unload the SDK plugins.
+Your client saves the selection for later sessions. Run `/hpc-sdk set` with the full list whenever you want to change it, or `/hpc-sdk clear` to unload the optional plugins.
 
 ### Other MCP clients
 
@@ -83,15 +84,29 @@ Open [this repository](https://github.com/RIKEN-RCCS/HPC-Agentic-SDK) in your AI
 
 > Install all the skills and MCP servers from this repository that my client supports.
 
-The agent can use the [marketplace catalog](./.agents/plugins/marketplace.json) to find each plugin, then register its `skills/` directory and any stdio servers in `.mcp.json` using the client’s native configuration. After installation, follow [Configure](#configure) for the HPC systems you use.
+The agent can use the [marketplace catalog](./.agents/plugins/marketplace.json) to find plugins and register their `skills/` directories and any stdio servers in `.mcp.json`. Install the shared Rookery `hpc` plugin once, then ask which facility skill packs the user wants. After installation, follow [Configure](#configure) for the HPC systems you use.
 
 ## Configure
 
-Facility plugins require [`uv`](https://docs.astral.sh/uv/) and access to the corresponding system. Follow the facility README to configure SSH and any credentials needed for documentation search. Facility settings live under `~/.hpc-agent/`.
+Rookery requires [`uv`](https://docs.astral.sh/uv/). Use the facility’s `<slug>-configuring` skill to set up SSH and any credentials needed for documentation search. Facility settings live under `~/.hpc-agent/`.
 
 Once configured, try a read-only request such as “Show me which queues are available on RIKYU.”
 
 The Tadashi MCP server requires Docker.
+
+## Migrating from the individual facility plugins
+
+| Previous plugin | Rookery skill pack | Facility argument |
+| --- | --- | --- |
+| `fugaku` | `hpc-fugaku` | `fugaku` |
+| `hokusai` | `hpc-hokusai` | `hokusai` |
+| `rccs-cloud` | `hpc-rccs-cloud` | `rccs-cloud` |
+| `rikyu` | `hpc-rikyu` | `rikyu` |
+
+1. Update the SDK and select your facility packs. OpenCode and Pi translate saved selections from the previous plugin names. With Claude Code or Codex, install the new packs and the shared `hpc` plugin.
+2. Keep your existing `~/.hpc-agent/` settings, including `rccs_cloud.json` for R-CCS Cloud. Check `get_facilities()` and try a read-only request for your machine.
+3. Disable or uninstall the old facility plugins once the new servers work. If you installed standalone Rookery, keep one active copy of the shared servers.
+4. Update scripts and notebooks that call a legacy server. Use the shared `hpc` and `hpc-docs` servers and pass the facility slug on each facility-scoped call, for example `get_resources(facility="rikyu")`.
 
 ## Overnight workflows
 

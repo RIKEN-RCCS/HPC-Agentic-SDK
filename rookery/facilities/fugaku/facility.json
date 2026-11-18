@@ -1,0 +1,7 @@
+{
+  "slug": "fugaku",
+  "display_name": "Fugaku",
+  "description": "158,976-node A64FX (Arm SVE) system, Fujitsu PJM scheduler, no GPUs; a project group is mandatory on every job.",
+  "scheduler": "pjm",
+  "live_validated": true
+}

@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { loadPlugins, pluginNames } from "./catalog.js";
+import { loadPlugins, pluginNames, restoreSelection } from "./catalog.js";
 
 function loadSelection(names) {
   const plugins = loadPlugins(names);
@@ -37,9 +37,7 @@ export default {
   id: "hpc-agentic-sdk",
   async setup(ctx) {
     const saved = await ctx.storage.get("plugins");
-    let selection = loadSelection(Array.isArray(saved)
-      ? saved.filter((name) => pluginNames.includes(name))
-      : []);
+    let selection = loadSelection(Array.isArray(saved) ? restoreSelection(saved) : []);
 
     const registrations = [
       await ctx.skill.transform((editor) => {
