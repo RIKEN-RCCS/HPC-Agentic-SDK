@@ -77,6 +77,16 @@ Rookery's shared servers and facility discovery skill load with the SDK. Start a
 
 Your client saves the selection for later sessions. Run `/hpc-sdk set` with the full list whenever you want to change it, or `/hpc-sdk clear` to unload the optional plugins.
 
+### VS Code (GitHub Copilot Chat)
+
+Open the Command Palette (`Cmd+Shift+P` on macOS, `Ctrl+Shift+P` elsewhere) and run **Chat: Add Plugin Marketplace**. Enter this repository's URL and press Enter to confirm:
+
+```text
+https://github.com/RIKEN-RCCS/HPC-Agentic-SDK
+```
+
+Then browse the plugins (for example from **Chat: Manage Plugin Marketplaces**), select `hpc-agentic-sdk`, and click **Install** on the plugins you want. For facility access, install `hpc` first, then the `hpc-<slug>` skill packs for your machines. Installed plugins show an **Installed** badge.
+
 ### Other MCP clients
 
 Open [this repository](https://github.com/RIKEN-RCCS/HPC-Agentic-SDK) in your AI client, or clone it and open the checkout. Then ask your agent:
