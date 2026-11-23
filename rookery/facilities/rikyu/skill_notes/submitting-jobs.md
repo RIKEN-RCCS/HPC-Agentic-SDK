@@ -53,6 +53,42 @@ attaching to a running job with `srun --overlap --jobid <id>` for
 diagnostics like `nvidia-smi`; the failure is specifically MPI rank
 bootstrap.)
 
+## Profiling MPI GPU binaries: profile one rank under `mpirun -n 1`
+
+An MPI-linked binary invoked directly under `nsys`/`ncu` fails at
+`MPI_Init` (or otherwise yields an invalid profile). Make the profiler
+the top-level command under a one-rank `mpirun`:
+
+```sh
+export NSYS_DISABLE_SYMBOL_DOWNLOAD=1
+mpirun -n 1 nsys profile --trace=cuda --sample=none --cpuctxsw=none \
+  --force-overwrite true -o profile ./binary < input
+nsys stats --report cuda_gpu_kern_sum --force-export true profile.nsys-rep
+```
+
+Measured facts (RIKYU HPCX/PRTE stack, 2026-09-03 and 2026-09-08):
+
+- Dropping `--sample=none --cpuctxsw=none`, or tracing `mpi`/`nvtx`/`osrt`,
+  hangs the launch: the job sits at 0% GPU utilization with
+  `mpirun`/`prterun`/`nsys` alive but no target process and an
+  `nsys-launcher` in `<defunct>` state. CPU sampling needs perf-event
+  permissions these compute nodes don't grant. Not a timeout — it never
+  resolves itself.
+- `NSYS_DISABLE_SYMBOL_DOWNLOAD=1` must be exported on its own line:
+  compute nodes have no outbound internet, and the symbol-download attempt
+  otherwise blocks at "Generating ... qdstrm" until walltime kills the job
+  — the profiled run itself already completed successfully at that point.
+- For `ncu`, filter by kernel name (`ncu -k regex:<substring>
+  --launch-count N --set full --clock-control none -f -o rep ./binary`),
+  not NVTX ranges — ranges compiled out of the binary make ncu silently
+  profile nothing (`==WARNING== No kernels were profiled`, no report
+  written). And don't quote `--set full`'s `Duration` as a kernel time —
+  replay plus instrumentation inflate it (measured >9x on a ~1.9 ms
+  kernel); take absolute times from `nsys`'s `cuda_gpu_kern_sum` instead.
+- A single-GPU profiling run doesn't need the per-rank GPU-binding
+  wrapper: export `CUDA_VISIBLE_DEVICES=0` and keep the profiler as the
+  top-level command under `mpirun -n 1`, not wrapped a layer deeper.
+
 ## NCCL / GPU collectives — quick fixes
 
 Launch every NCCL or GPU-MPI job with ranks NUMA-bound — NCCL pairs each
